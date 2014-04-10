@@ -21,8 +21,9 @@
 package com.signalcollect.nodeprovisioning.slurm
 
 import org.apache.commons.codec.binary.Base64
-import com.signalcollect.nodeprovisioning.slurm.SlurmPriority;
-import com.signalcollect.nodeprovisioning.torque.AbstractJobSubmitter
+import java.io.File
+import java.io.FileOutputStream
+import java.io.FileWriter
 
 abstract class AbstractSlurmJobSubmitter extends Serializable {
 
@@ -38,8 +39,9 @@ abstract class AbstractSlurmJobSubmitter extends Serializable {
     workingDir: String,
     mailAddress: Option[String] = None): String = {
     val script = getShellScript(jobId, numberOfNodes, coresPerNode, jarname, mainClass, priority, jvmParameters, jdkBinPath, workingDir, mailAddress)
-    val scriptBase64 = Base64.encodeBase64String(script.getBytes).replace("\n", "").replace("\r", "")
-    val qsubCommand = """echo """ + scriptBase64 + """ | base64 -d | sbatch""" //TODO
+    //println("The batchscript")
+    //println(script)
+    val qsubCommand = """sbatch """ + jobId + ".sh" //TODO // | base64 -d
     executeCommandOnClusterManager(qsubCommand)
   }
 
@@ -57,9 +59,11 @@ abstract class AbstractSlurmJobSubmitter extends Serializable {
     jvmParameters: String,
     jdkBinPath: String,
     workingDir: String,
-    mailAddress: Option[String]): String = { 
-    val script = """ 
-#!/bin/bash
+    mailAddress: Option[String]): String = {
+
+    println("Copying submission script")
+
+    val script = """#!/bin/bash
 #SBATCH --job-name=""" + jobId + """
 #SBATCH -N """ + numberOfNodes + """
 #SBATCH -n """ + coresPerNode + """
@@ -80,14 +84,28 @@ vm_args="""" + jvmParameters + """"
 srun --ntasks-per-node=1 cp ~/$jarname $workingDir/
 
 # run test
-pbsdsh --ntasks-per-node=1 """ + jdkBinPath + """java $vm_args -cp $workingDir/$jarname $mainClass """ + jobId + """
-"""
+srun --ntasks-per-node=1 """ + jdkBinPath + """java $jvmParameters -cp $workingDir/$jarname $mainClass """ + jobId
 
-////TODO: maybe add 
-//#create scratch, if it does not exist
-//srun --ntasks-per-node=1 mkdir $workingDir/
-//
-//before copy jar
+    val fileSeparator = System.getProperty("file.separator")
+
+    val folder = new File("." + fileSeparator + "config-tmp")
+    if (!folder.exists) {
+      folder.mkdir
+    }
+    val scriptPath = "." + fileSeparator + jobId + ".sh"
+    val out = new FileWriter(scriptPath)
+    out.write(script)
+    out.close
+    copyFileToCluster(scriptPath)
+
+    println("Jarname is: " + jarname)
+    println("Script in abstract is")
+    println(script)
+    ////TODO: maybe add 
+    //#create scratch, if it does not exist
+    //srun --ntasks-per-node=1 mkdir $workingDir/
+    //
+    //before copy jar
     script
   }
 }

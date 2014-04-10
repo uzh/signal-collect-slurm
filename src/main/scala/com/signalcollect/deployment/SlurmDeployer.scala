@@ -21,7 +21,6 @@ package com.signalcollect.deployment
 
 import com.signalcollect.util.RandomString
 import com.typesafe.config.Config
-import com.signalcollect.nodeprovisioning.torque.TorqueJobSubmitter
 import com.signalcollect.nodeprovisioning.torque.TorqueHost
 import com.signalcollect.nodeprovisioning.torque.Job
 import scala.collection.JavaConversions._
@@ -45,7 +44,7 @@ object SlurmDeployer extends App {
     val deploymentJar = config.getString("deployment.jvm.deployed-jar")
     val deploymentJvmPath = config.getString("deployment.jvm.binary-path")
     val deploymentJvmParameters = config.getString("deployment.jvm.parameters")
-    val jobSubmitter = new TorqueJobSubmitter(username = serverUsername, hostname = serverAddress)
+    val jobSubmitter = new SlurmJobSubmitter(username = serverUsername, hostname = serverAddress)
     if (config.hasPath("deployment.setup.copy-files")) {
       val copyConfigs = config.getConfigList("deployment.setup.copy-files")
       for (copyConfig <- copyConfigs) {
@@ -65,7 +64,8 @@ object SlurmDeployer extends App {
     val parameterMap = config.getConfig("deployment.algorithm.parameters").entrySet.map {
       entry => (entry.getKey, entry.getValue.unwrapped.toString)
     }.toMap
-    val priorityString = s"#PBS -l walltime=$jobWalltime,mem=$jobMemory"
+    val priorityString = s"""#SBATCH -t $jobWalltime
+    						#SBATCH --mem=$jobMemory"""
     val akkaPort = 2552
     val torque = new SlurmHost(
       jobSubmitter = jobSubmitter,
@@ -83,6 +83,7 @@ object SlurmDeployer extends App {
         jobId = id,
         numberOfNodes = jobNumberOfNodes)
     }
+    println(s"Submitting jobs ${jobs.toList}")
     torque.executeJobs(jobs.toList)
   }
 }

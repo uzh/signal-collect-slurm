@@ -34,7 +34,7 @@ class LocalSlurmJobSubmitter extends AbstractSlurmJobSubmitter {
     priority: String = SlurmPriority.superfast,
     jvmParameters: String,
     jdkBinPath: String = "",
-    workingDir: String = "/home/torque/tmp/${USER}.${PBS_JOBID}",
+    workingDir: String = "/home/slurm/verman-${SLURM_JOB_ID}", //TODO
     mailAddress: Option[String] = None): String = {
     val script = getShellScript(
       jobId,
@@ -47,8 +47,9 @@ class LocalSlurmJobSubmitter extends AbstractSlurmJobSubmitter {
       jdkBinPath,
       workingDir,
       mailAddress)
-    val qsubCommand = """echo """ + script + """ | qsub""" //TODO
-    Seq("echo", script) #| Seq("qsub")!!
+    val qsubCommand = """sbatch """+script //TODO
+    println("Slurm submission: "+ qsubCommand)
+    Seq("echo", script) #| Seq("sbatch")!!
   }
 
   def executeCommandOnClusterManager(command: String): String = {
