@@ -75,7 +75,7 @@ object SlurmDeployer extends App {
       jvmParameters = deploymentJvmParameters,
       priority = priorityString,
       workingDir = jobWorkingDir)
-    val baseId = s"sc-${RandomString.generate(6)}-#"
+    val baseId = s"sc-${RandomString.generate(6)}-"
     val jobIds = (1 to jobRepetitions).map(i => baseId + i)
     val jobs = jobIds.map { id =>
       Job(
