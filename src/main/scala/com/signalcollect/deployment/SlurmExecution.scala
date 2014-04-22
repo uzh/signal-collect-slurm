@@ -35,7 +35,7 @@ object SlurmExecution extends App {
   deployToSlurm(args)
 
   def deployToSlurm(arguments: Array[String]) {
-    val defaultConfigPath = "./deployment.config"
+    val defaultConfigPath = "./deployment.slurm.config"
     val defaultConfig = readConfig(defaultConfigPath)
     val mainConfig = if (arguments.size > 0) {
       readConfig(arguments(0))
