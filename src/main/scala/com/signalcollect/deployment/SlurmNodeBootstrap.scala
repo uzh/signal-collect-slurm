@@ -71,10 +71,10 @@ case class SlurmNodeBootstrap(
    */
   def buildNodeNameList(nodeNames: String): List[String] = {
     //TODO: Rename entities and clean up code
-    if (nodeNames.contains("[")) {
+    if (nodeNames.contains("\\[")) {
       var nodes: List[String] = null
-      val name = nodeNames.split("[")(0)
-      val intermediateNodeList = nodeNames.split("[")(1).split("]")(0).split(",")
+      val name = nodeNames.split("\\[")(0)
+      val intermediateNodeList = nodeNames.split("\\[")(1).split("\\]")(0).split(",")
       for (betweenCommas <- intermediateNodeList) {
         if (betweenCommas.contains("-")) {
           val sizeOfNumber = betweenCommas.split("-")(1).size
