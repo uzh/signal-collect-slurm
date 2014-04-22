@@ -42,14 +42,15 @@ case class SlurmNodeBootstrap(
   parameters: Map[String, String],
   numberOfNodes: Int,
   akkaPort: Int,
-  kryoRegistrations: List[String]) {
+  kryoRegistrations: List[String],
+  kryoInitializer: String) {
 
-  def akkaConfig(akkaPort: Int, kryoRegistrations: List[String]) = AkkaConfig.get(
+  def akkaConfig(akkaPort: Int, kryoRegistrations: List[String], kryoInitializer: String) = AkkaConfig.get(
     akkaMessageCompression = true,
     serializeMessages = false,
     loggingLevel = Logging.WarningLevel, //Logging.DebugLevel,
     kryoRegistrations = kryoRegistrations,
-    useJavaSerialization = false,
+    kryoInitializer = kryoInitializer,
     port = akkaPort)
 
   def ipAndIdToActorRef(ip: String, id: Int, system: ActorSystem, akkaPort: Int): ActorRef = {
@@ -95,8 +96,9 @@ case class SlurmNodeBootstrap(
     println(s"numberOfNodes = $numberOfNodes, akkaPort = $akkaPort")
     println(s"Starting the actor system and node actor ...")
     val nodeId = System.getenv("SLURM_NODEID").toInt //TODO SLURM_NODEID it says relative id. might need to use SLURM_NODELIST to get same result as PBS_NODENUM
-    val system: ActorSystem = ActorSystem("SignalCollect", akkaConfig(akkaPort, kryoRegistrations))
+    val system: ActorSystem = ActorSystem("SignalCollect", akkaConfig(akkaPort, kryoRegistrations, kryoInitializer))
     ActorSystemRegistry.register(system)
+    
     val nodeControllerCreator = NodeActorCreator(nodeId, numberOfNodes, None)
     val nodeController = system.actorOf(Props[DefaultNodeActor].withCreator(
       nodeControllerCreator.create), name = "DefaultNodeActor" + nodeId.toString)

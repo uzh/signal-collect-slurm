@@ -45,6 +45,12 @@ object SlurmDeployer extends App {
     val deploymentJvmPath = config.getString("deployment.jvm.binary-path")
     val deploymentJvmParameters = config.getString("deployment.jvm.parameters")
     val jobSubmitter = new SlurmJobSubmitter(username = serverUsername, hostname = serverAddress)
+    val kryoInitializer = if (config.hasPath("deployment.akka.kryo-initializer")) {
+      config.getString("deployment.akka.kryo-initializer")
+    } else {
+      "com.signalcollect.configuration.KryoInit"
+    }
+    
     if (config.hasPath("deployment.setup.copy-files")) {
       val copyConfigs = config.getConfigList("deployment.setup.copy-files")
       for (copyConfig <- copyConfigs) {
@@ -79,7 +85,7 @@ object SlurmDeployer extends App {
     val jobIds = (1 to jobRepetitions).map(i => baseId + i)
     val jobs = jobIds.map { id =>
       Job(
-        execute = SlurmNodeBootstrap(deploymentAlgorithm, parameterMap, jobNumberOfNodes, akkaPort, kryoRegistrations).slurmExecutable _,
+        execute = SlurmNodeBootstrap(deploymentAlgorithm, parameterMap, jobNumberOfNodes, akkaPort, kryoRegistrations, kryoInitializer).slurmExecutable _,
         jobId = id,
         numberOfNodes = jobNumberOfNodes)
     }
