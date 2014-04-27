@@ -32,3 +32,4 @@ web-split-*
 deployment.config
 
 *.sh
+deployment.slurm.config
