@@ -66,7 +66,10 @@ abstract class AbstractSlurmJobSubmitter extends Serializable {
     val script = """#!/bin/bash
 #SBATCH --job-name=""" + jobId + """
 #SBATCH -N """ + numberOfNodes + """
-#SBATCH -n """ + coresPerNode + """
+#SBATCH -n """ + numberOfNodes + """
+#SBATCH -c """ + coresPerNode + """
+
+#SBATCH --exclusive
 """ + priority + """
 #SBATCH -o
 #SBATCH --mail-type=ALL

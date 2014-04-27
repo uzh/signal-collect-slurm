@@ -71,8 +71,9 @@ case class SlurmNodeBootstrap(
    */
   def buildNodeNameList(nodeNames: String): List[String] = {
     //TODO: Rename entities and clean up code
-    if (nodeNames.contains("\\[")) {
-      var nodes: List[String] = null
+    
+    if (nodeNames.contains("[")) {
+      var nodes: List[String] = List.empty
       val name = nodeNames.split("\\[")(0)
       val intermediateNodeList = nodeNames.split("\\[")(1).split("\\]")(0).split(",")
       for (betweenCommas <- intermediateNodeList) {
@@ -98,16 +99,23 @@ case class SlurmNodeBootstrap(
     val nodeId = System.getenv("SLURM_NODEID").toInt //TODO SLURM_NODEID it says relative id. might need to use SLURM_NODELIST to get same result as PBS_NODENUM
     val system: ActorSystem = ActorSystem("SignalCollect", akkaConfig(akkaPort, kryoRegistrations, kryoInitializer))
     ActorSystemRegistry.register(system)
-    
+
     val nodeControllerCreator = NodeActorCreator(nodeId, numberOfNodes, None)
     val nodeController = system.actorOf(Props[DefaultNodeActor].withCreator(
       nodeControllerCreator.create), name = "DefaultNodeActor" + nodeId.toString)
     //val nodesFilePath = System.getenv("PBS_NODEFILE") //TODO here PBS_NODEFILE the name of the file containing the list of nodes assigned to the job
+      val nodesFilePath = System.getenv("SLURM_JOB_NODELIST")
+      val isLeader1 = nodesFilePath != null
+      val isLeader2 = nodeId == 0
+    
     val nodeNames = System.getenv("SLURM_NODELIST") //io.Source.fromFile(nodesFilePath).getLines.toList.distinct
 
     val isLeader = (nodeNames != null) && (!nodeNames.isEmpty) //nodesFilePath != null
-    if (isLeader) {
+    
+    //if (isLeader) {
+    if (isLeader2) {
       val nodeNameList = buildNodeNameList(nodeNames)
+      println(s"I am leader, nodeNameList: $nodeNameList")
       println("Leader is waiting for node actors to start ...")
       Thread.sleep(500)
       println("Leader is generating the node actor references ...")
