@@ -123,7 +123,7 @@ case class SlurmNodeBootstrap(
       val nodeIps = nodeNameList.map(InetAddress.getByName(_).getHostAddress)
       val nodeActors = nodeIps.zipWithIndex.map { case (ip, i) => ipAndIdToActorRef(ip, i, system, akkaPort) }.toArray
       println("Leader is passing the nodes and graph builder on to the user code ...")
-      val algorithmObject = Class.forName(slurmDeployableAlgorithmClassName).newInstance.asInstanceOf[SlurmDeployableAlgorithm]
+      val algorithmObject = Class.forName(slurmDeployableAlgorithmClassName).newInstance.asInstanceOf[TorqueDeployableAlgorithm]
       algorithmObject.execute(parameters, nodeActors)
     }
   }
