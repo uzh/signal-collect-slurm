@@ -90,6 +90,6 @@ object SlurmDeployer extends App {
         numberOfNodes = jobNumberOfNodes)
     }
     println(s"Submitting jobs ${jobs.toList}")
-    torque.executeJobs(jobs.toList)
+    torque.executeJobs(jobs.toList, copyExecutable = true)
   }
 }
