@@ -42,7 +42,7 @@ case class SlurmHost(
   jdkBinPath: String = "",
   mainClass: String = "com.signalcollect.nodeprovisioning.torque.JobExecutor",
   priority: String = SlurmPriority.superfast,
-  workingDir: String = "/home/slurm/verman-${SLURM_JOB_ID}") extends ExecutionHost { //TODO change this!!! hardcoded!!!
+  workingDir: String = "/home/slurm/${USER}-${SLURM_JOB_ID}") extends ExecutionHost {
 
   val fileSeparator = System.getProperty("file.separator")
   val jarName = localJarPath.substring(localJarPath.lastIndexOf(fileSeparator) + 1, localJarPath.size)

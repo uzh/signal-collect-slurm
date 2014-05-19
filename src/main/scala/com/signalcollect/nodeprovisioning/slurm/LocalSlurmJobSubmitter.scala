@@ -34,7 +34,7 @@ class LocalSlurmJobSubmitter extends AbstractSlurmJobSubmitter {
     priority: String = SlurmPriority.superfast,
     jvmParameters: String,
     jdkBinPath: String = "",
-    workingDir: String = "/home/slurm/verman-${SLURM_JOB_ID}", //TODO
+    workingDir: String = "/home/slurm/${USER}-${SLURM_JOB_ID}",
     mailAddress: Option[String] = None): String = {
     val script = getShellScript(
       jobId,
