@@ -22,13 +22,13 @@ package com.signalcollect.deployment
 
 import java.net.InetAddress
 import com.signalcollect.configuration.AkkaConfig
-import com.signalcollect.nodeprovisioning.NodeActorCreator
 import com.signalcollect.configuration.ActorSystemRegistry
 import akka.actor.ActorSystem
 import akka.actor.ActorRef
 import akka.actor.Props
 import akka.event.Logging
-import com.signalcollect.nodeprovisioning.DefaultNodeActor
+import com.signalcollect.node.NodeActorCreator
+import com.signalcollect.node.DefaultNodeActor
 
 /**
  * A class that gets serialized and contains the code required to bootstrap
@@ -71,7 +71,7 @@ case class SlurmNodeBootstrap(
    */
   def buildNodeNameList(nodeNames: String): List[String] = {
     //TODO: Rename entities and clean up code
-    
+
     if (nodeNames.contains("[")) {
       var nodes: List[String] = List.empty
       val name = nodeNames.split("\\[")(0)
@@ -99,32 +99,30 @@ case class SlurmNodeBootstrap(
     val nodeId = System.getenv("SLURM_NODEID").toInt //TODO SLURM_NODEID it says relative id. might need to use SLURM_NODELIST to get same result as PBS_NODENUM
     val system: ActorSystem = ActorSystem("SignalCollect", akkaConfig(akkaPort, kryoRegistrations, kryoInitializer))
     ActorSystemRegistry.register(system)
-
+    //    val leaderExtractor = "\\d+".r
+    //    val nodeNames = System.getenv("SLURM_NODELIST")
+    //    val leaderId = leaderExtractor.findFirstIn(nodeNames).get.toInt
+    //    val nodeId = System.getenv("SLURM_NODEID").toInt
     val nodeControllerCreator = NodeActorCreator(nodeId, numberOfNodes, None)
     val nodeController = system.actorOf(Props[DefaultNodeActor].withCreator(
       nodeControllerCreator.create), name = "DefaultNodeActor" + nodeId.toString)
-    //val nodesFilePath = System.getenv("PBS_NODEFILE") //TODO here PBS_NODEFILE the name of the file containing the list of nodes assigned to the job
-      val nodesFilePath = System.getenv("SLURM_JOB_NODELIST")
-      val isLeader1 = nodesFilePath != null
-      val isLeader2 = nodeId == 0
-    
-    val nodeNames = System.getenv("SLURM_NODELIST") //io.Source.fromFile(nodesFilePath).getLines.toList.distinct
-
-    val isLeader = (nodeNames != null) && (!nodeNames.isEmpty) //nodesFilePath != null
-    
-    //if (isLeader) {
-    if (isLeader2) {
+    val isLeader = nodeId == 0
+    println(s"Node ID = $nodeId")
+    if (isLeader) {
+      println(s"Node $nodeId is leader.")
+      val nodeNames = System.getenv("SLURM_NODELIST")
       val nodeNameList = buildNodeNameList(nodeNames)
-      println(s"I am leader, nodeNameList: $nodeNameList")
+      println(s"Leader nodeNameList: $nodeNameList")
       println("Leader is waiting for node actors to start ...")
-      Thread.sleep(500)
+      Thread.sleep(4000)
       println("Leader is generating the node actor references ...")
-
       val nodeIps = nodeNameList.map(InetAddress.getByName(_).getHostAddress)
       val nodeActors = nodeIps.zipWithIndex.map { case (ip, i) => ipAndIdToActorRef(ip, i, system, akkaPort) }.toArray
       println("Leader is passing the nodes and graph builder on to the user code ...")
       val algorithmObject = Class.forName(slurmDeployableAlgorithmClassName).newInstance.asInstanceOf[TorqueDeployableAlgorithm]
       algorithmObject.execute(parameters, nodeActors)
+    } else {
+      println(s"$nodeId has started its actor system.")
     }
   }
 }
