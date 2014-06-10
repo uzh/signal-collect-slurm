@@ -33,3 +33,5 @@ deployment.config
 
 *.sh
 deployment.slurm.config
+
+deployment.slurm.config
