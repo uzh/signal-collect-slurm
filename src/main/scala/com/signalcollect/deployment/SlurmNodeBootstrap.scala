@@ -42,6 +42,7 @@ case class SlurmNodeBootstrap(
   parameters: Map[String, String],
   numberOfNodes: Int,
   akkaPort: Int,
+  workersOnCoordinatorNode: Boolean,
   kryoRegistrations: List[String],
   kryoInitializer: String) {
 
@@ -103,11 +104,13 @@ case class SlurmNodeBootstrap(
     //    val nodeNames = System.getenv("SLURM_NODELIST")
     //    val leaderId = leaderExtractor.findFirstIn(nodeNames).get.toInt
     //    val nodeId = System.getenv("SLURM_NODEID").toInt
-    val nodeControllerCreator = NodeActorCreator(nodeId, numberOfNodes, None)
-    val nodeController = system.actorOf(Props[DefaultNodeActor].withCreator(
-      nodeControllerCreator.create), name = "DefaultNodeActor" + nodeId.toString)
     val isLeader = nodeId == 0
-    println(s"Node ID = $nodeId")
+    if (!isLeader || workersOnCoordinatorNode) {
+      val nodeControllerCreator = NodeActorCreator(nodeId, numberOfNodes, None)
+      val nodeController = system.actorOf(Props[DefaultNodeActor].withCreator(
+        nodeControllerCreator.create), name = "DefaultNodeActor" + nodeId.toString)
+      println(s"Node ID = $nodeId")
+    }
     if (isLeader) {
       println(s"Node $nodeId is leader.")
       val nodeNames = System.getenv("SLURM_NODELIST")
@@ -116,7 +119,11 @@ case class SlurmNodeBootstrap(
       println("Leader is waiting for node actors to start ...")
       Thread.sleep(4000)
       println("Leader is generating the node actor references ...")
-      val nodeIps = nodeNameList.map(InetAddress.getByName(_).getHostAddress)
+      val nodeIps = if (workersOnCoordinatorNode) {
+        nodeNameList.map(InetAddress.getByName(_).getHostAddress)
+      } else {
+        nodeNameList.map(InetAddress.getByName(_).getHostAddress).filter(_ != InetAddress.getLocalHost.getHostAddress)
+      }
       val nodeActors = nodeIps.zipWithIndex.map { case (ip, i) => ipAndIdToActorRef(ip, i, system, akkaPort) }.toArray
       println("Leader is passing the nodes and graph builder on to the user code ...")
       val algorithmObject = Class.forName(slurmDeployableAlgorithmClassName).newInstance.asInstanceOf[TorqueDeployableAlgorithm]

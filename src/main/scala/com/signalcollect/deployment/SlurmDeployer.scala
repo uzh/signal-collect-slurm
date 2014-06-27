@@ -36,6 +36,11 @@ object SlurmDeployer extends App {
     } else {
       1
     }
+    val workersOnCoordinatorNode = if (config.hasPath("workers-on-coordinator-node")) {
+      config.getBoolean("workers-on-coordinator-node")
+    } else {
+      true
+    }
     val jobNumberOfNodes = config.getInt("deployment.torque.job.number-of-nodes")
     val jobCoresPerNode = config.getInt("deployment.torque.job.cores-per-node")
     val jobMemory = config.getString("deployment.torque.job.memory")
@@ -50,7 +55,7 @@ object SlurmDeployer extends App {
     } else {
       "com.signalcollect.configuration.KryoInit"
     }
-    
+
     if (config.hasPath("deployment.setup.copy-files")) {
       val copyConfigs = config.getConfigList("deployment.setup.copy-files")
       for (copyConfig <- copyConfigs) {
@@ -85,7 +90,14 @@ object SlurmDeployer extends App {
     val jobIds = (1 to jobRepetitions).map(i => baseId + i)
     val jobs = jobIds.map { id =>
       Job(
-        execute = SlurmNodeBootstrap(deploymentAlgorithm, parameterMap, jobNumberOfNodes, akkaPort, kryoRegistrations, kryoInitializer).slurmExecutable _,
+        execute = SlurmNodeBootstrap(
+          deploymentAlgorithm,
+          parameterMap,
+          jobNumberOfNodes,
+          akkaPort,
+          workersOnCoordinatorNode,
+          kryoRegistrations,
+          kryoInitializer).slurmExecutable _,
         jobId = id,
         numberOfNodes = jobNumberOfNodes)
     }
