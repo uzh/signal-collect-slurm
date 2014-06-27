@@ -21,14 +21,20 @@
 package com.signalcollect.deployment
 
 import java.net.InetAddress
-import com.signalcollect.configuration.AkkaConfig
+
+import scala.concurrent.Await
+import scala.concurrent.duration.DurationInt
+import scala.language.postfixOps
+
 import com.signalcollect.configuration.ActorSystemRegistry
-import akka.actor.ActorSystem
+import com.signalcollect.configuration.AkkaConfig
+import com.signalcollect.node.DefaultNodeActor
+
 import akka.actor.ActorRef
+import akka.actor.ActorSystem
 import akka.actor.Props
 import akka.event.Logging
-import com.signalcollect.node.NodeActorCreator
-import com.signalcollect.node.DefaultNodeActor
+import akka.util.Timeout
 
 /**
  * A class that gets serialized and contains the code required to bootstrap
@@ -38,6 +44,7 @@ import com.signalcollect.node.DefaultNodeActor
  * defined by the class 'slurmDeployableAlgorithmClassName'.
  */
 case class SlurmNodeBootstrap(
+  actorNamePrefix: String,
   slurmDeployableAlgorithmClassName: String,
   parameters: Map[String, String],
   numberOfNodes: Int,
@@ -47,7 +54,6 @@ case class SlurmNodeBootstrap(
   kryoInitializer: String) {
 
   def akkaConfig(akkaPort: Int, kryoRegistrations: List[String], kryoInitializer: String) = AkkaConfig.get(
-    akkaMessageCompression = true,
     serializeMessages = false,
     loggingLevel = Logging.WarningLevel, //Logging.DebugLevel,
     kryoRegistrations = kryoRegistrations,
@@ -55,8 +61,10 @@ case class SlurmNodeBootstrap(
     port = akkaPort)
 
   def ipAndIdToActorRef(ip: String, id: Int, system: ActorSystem, akkaPort: Int): ActorRef = {
-    val address = s"""akka://SignalCollect@$ip:$akkaPort/user/DefaultNodeActor$id"""
-    val actorRef = system.actorFor(address)
+    val address = s"""akka.tcp://SignalCollect@$ip:$akkaPort/user/${actorNamePrefix}DefaultNodeActor$id"""
+    implicit val timeout = Timeout(30.seconds)
+    val selection = system.actorSelection(address)
+    val actorRef = Await.result(selection.resolveOne, 30 seconds)
     actorRef
   }
 
@@ -106,9 +114,10 @@ case class SlurmNodeBootstrap(
     //    val nodeId = System.getenv("SLURM_NODEID").toInt
     val isLeader = nodeId == 0
     if (!isLeader || workersOnCoordinatorNode) {
-      val nodeControllerCreator = NodeActorCreator(nodeId, numberOfNodes, None)
-      val nodeController = system.actorOf(Props[DefaultNodeActor].withCreator(
-        nodeControllerCreator.create), name = "DefaultNodeActor" + nodeId.toString)
+      //      val nodeControllerCreator = NodeActorCreator(nodeId, numberOfNodes, None)
+      //      val nodeController = system.actorOf(Props[DefaultNodeActor].withCreator(
+      //        nodeControllerCreator.create), name = "DefaultNodeActor" + nodeId.toString)
+      val nodeController = system.actorOf(Props(classOf[DefaultNodeActor], actorNamePrefix, nodeId, numberOfNodes, None), name = "DefaultNodeActor" + nodeId.toString)
       println(s"Node ID = $nodeId")
     }
     if (isLeader) {

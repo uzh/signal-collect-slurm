@@ -91,6 +91,7 @@ object SlurmDeployer extends App {
     val jobs = jobIds.map { id =>
       Job(
         execute = SlurmNodeBootstrap(
+          "",
           deploymentAlgorithm,
           parameterMap,
           jobNumberOfNodes,
