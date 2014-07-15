@@ -63,8 +63,10 @@ case class SlurmNodeBootstrap(
   def ipAndIdToActorRef(ip: String, id: Int, system: ActorSystem, akkaPort: Int): ActorRef = {
     val address = s"""akka.tcp://SignalCollect@$ip:$akkaPort/user/${actorNamePrefix}DefaultNodeActor$id"""
     implicit val timeout = Timeout(30.seconds)
+    println(s"Resolving node $id")
     val selection = system.actorSelection(address)
     val actorRef = Await.result(selection.resolveOne, 30 seconds)
+    println(s"Done resolving node $id")
     actorRef
   }
 
@@ -117,7 +119,23 @@ case class SlurmNodeBootstrap(
       //      val nodeControllerCreator = NodeActorCreator(nodeId, numberOfNodes, None)
       //      val nodeController = system.actorOf(Props[DefaultNodeActor].withCreator(
       //        nodeControllerCreator.create), name = "DefaultNodeActor" + nodeId.toString)
-      val nodeController = system.actorOf(Props(classOf[DefaultNodeActor], actorNamePrefix, nodeId, numberOfNodes, None), name = "DefaultNodeActor" + nodeId.toString)
+      val nodeActorId = {
+        if (workersOnCoordinatorNode) {
+          nodeId
+        } else {
+          nodeId - 1
+        }
+      }
+      val numberOfWorkerNodes = {
+        if (workersOnCoordinatorNode) {
+          numberOfNodes
+        } else {
+          numberOfNodes - 1
+        }
+      }
+      val nodeController = system.actorOf(
+        Props(classOf[DefaultNodeActor], actorNamePrefix, nodeActorId, numberOfWorkerNodes, None),
+        name = "DefaultNodeActor" + nodeActorId.toString)
       println(s"Node ID = $nodeId")
     }
     if (isLeader) {
@@ -126,14 +144,22 @@ case class SlurmNodeBootstrap(
       val nodeNameList = buildNodeNameList(nodeNames)
       println(s"Leader nodeNameList: $nodeNameList")
       println("Leader is waiting for node actors to start ...")
-      Thread.sleep(4000)
+      Thread.sleep(10000)
       println("Leader is generating the node actor references ...")
-      val nodeIps = if (workersOnCoordinatorNode) {
-        nodeNameList.map(InetAddress.getByName(_).getHostAddress)
-      } else {
-        nodeNameList.map(InetAddress.getByName(_).getHostAddress).filter(_ != InetAddress.getLocalHost.getHostAddress)
-      }
-      val nodeActors = nodeIps.zipWithIndex.map { case (ip, i) => ipAndIdToActorRef(ip, i, system, akkaPort) }.toArray
+      println(s"workersOnCoordinatorNode = $workersOnCoordinatorNode")
+      println(s"Nodes = ${nodeNameList.map(InetAddress.getByName(_).getHostAddress).toList}")
+      println(s"Coordinator = ${InetAddress.getLocalHost.getHostAddress}")
+      val nodeIps = nodeNameList.map(InetAddress.getByName(_).getHostAddress)
+      val nodeActors = nodeIps.zipWithIndex.par.flatMap {
+        case (ip, i) =>
+          if (workersOnCoordinatorNode) {
+            Some(ipAndIdToActorRef(ip, i, system, akkaPort))
+          } else if (ip != InetAddress.getLocalHost.getHostAddress) {
+            Some(ipAndIdToActorRef(ip, i - 1, system, akkaPort))
+          } else {
+            None
+          }
+      }.toArray
       println("Leader is passing the nodes and graph builder on to the user code ...")
       val algorithmObject = Class.forName(slurmDeployableAlgorithmClassName).newInstance.asInstanceOf[TorqueDeployableAlgorithm]
       algorithmObject.execute(parameters, nodeActors)

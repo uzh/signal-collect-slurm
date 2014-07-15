@@ -36,8 +36,8 @@ object SlurmDeployer extends App {
     } else {
       1
     }
-    val workersOnCoordinatorNode = if (config.hasPath("workers-on-coordinator-node")) {
-      config.getBoolean("workers-on-coordinator-node")
+    val workersOnCoordinatorNode = if (config.hasPath("deployment.workers-on-coordinator-node")) {
+      config.getBoolean("deployment.workers-on-coordinator-node")
     } else {
       true
     }
