@@ -55,7 +55,7 @@ object SlurmExecution extends App {
         default
       case (None, None) =>
         throw new Exception(s"Either the path to a configuration file has to be passed as an argument, " +
-          "or the default configuration file @ '$defaultConfigPath' has to exist.")
+          s"or the default configuration file @ '$defaultConfigPath' has to exist.")
     }
     SlurmDeployer.deploy(config)
   }

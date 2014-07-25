@@ -32,6 +32,7 @@ import com.signalcollect.nodeprovisioning.torque.ExecutionHost
 import com.signalcollect.nodeprovisioning.torque.Job
 import com.signalcollect.serialization.DefaultSerializer
 import scala.util.Random
+import scala.concurrent.Future
 
 case class SlurmHost(
   jobSubmitter: SlurmJobSubmitter,
@@ -59,7 +60,7 @@ case class SlurmHost(
       /** SUBMIT AN EVALUATION JOB FOR EACH CONFIGURATION */
       val jubSubmissions = jobs map {
         job =>
-          future {
+          Future {
             println("Submitting job " + job.jobId + " ...")
             val config = DefaultSerializer.write(job)
             val folder = new File("." + fileSeparator + "config-tmp")

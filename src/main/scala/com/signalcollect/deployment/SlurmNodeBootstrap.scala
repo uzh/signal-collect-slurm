@@ -43,7 +43,7 @@ import akka.util.Timeout
  * and the leader additionally bootstraps a Signal/Collect computation
  * defined by the class 'slurmDeployableAlgorithmClassName'.
  */
-case class SlurmNodeBootstrap(
+case class SlurmNodeBootstrap[Id, Signal](
   actorNamePrefix: String,
   slurmDeployableAlgorithmClassName: String,
   parameters: Map[String, String],
@@ -134,7 +134,7 @@ case class SlurmNodeBootstrap(
         }
       }
       val nodeController = system.actorOf(
-        Props(classOf[DefaultNodeActor], actorNamePrefix, nodeActorId, numberOfWorkerNodes, None),
+        Props(classOf[DefaultNodeActor[Id, Signal]], actorNamePrefix, nodeActorId, numberOfWorkerNodes, None),
         name = "DefaultNodeActor" + nodeActorId.toString)
       println(s"Node ID = $nodeId")
     }
