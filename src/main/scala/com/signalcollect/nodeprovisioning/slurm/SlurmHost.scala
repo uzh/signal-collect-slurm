@@ -32,6 +32,7 @@ import com.signalcollect.nodeprovisioning.torque.ExecutionHost
 import com.signalcollect.nodeprovisioning.torque.Job
 import com.signalcollect.serialization.DefaultSerializer
 import scala.util.Random
+import scala.concurrent.Future
 
 case class SlurmHost(
   jobSubmitter: SlurmJobSubmitter,
@@ -42,7 +43,7 @@ case class SlurmHost(
   jdkBinPath: String = "",
   mainClass: String = "com.signalcollect.nodeprovisioning.torque.JobExecutor",
   priority: String = SlurmPriority.superfast,
-  workingDir: String = "/home/slurm/verman-${SLURM_JOB_ID}") extends ExecutionHost { //TODO change this!!! hardcoded!!!
+  workingDir: String = "/home/slurm/${USER}-${SLURM_JOB_ID}") extends ExecutionHost {
 
   val fileSeparator = System.getProperty("file.separator")
   val jarName = localJarPath.substring(localJarPath.lastIndexOf(fileSeparator) + 1, localJarPath.size)
@@ -59,7 +60,7 @@ case class SlurmHost(
       /** SUBMIT AN EVALUATION JOB FOR EACH CONFIGURATION */
       val jubSubmissions = jobs map {
         job =>
-          future {
+          Future {
             println("Submitting job " + job.jobId + " ...")
             val config = DefaultSerializer.write(job)
             val folder = new File("." + fileSeparator + "config-tmp")

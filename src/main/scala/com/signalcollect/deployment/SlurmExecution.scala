@@ -35,7 +35,7 @@ object SlurmExecution extends App {
   deployToSlurm(args)
 
   def deployToSlurm(arguments: Array[String]) {
-    val defaultConfigPath = "./deployment.config"
+    val defaultConfigPath = "./deployment.slurm.config"
     val defaultConfig = readConfig(defaultConfigPath)
     val mainConfig = if (arguments.size > 0) {
       readConfig(arguments(0))
@@ -55,7 +55,7 @@ object SlurmExecution extends App {
         default
       case (None, None) =>
         throw new Exception(s"Either the path to a configuration file has to be passed as an argument, " +
-          "or the default configuration file @ '$defaultConfigPath' has to exist.")
+          s"or the default configuration file @ '$defaultConfigPath' has to exist.")
     }
     SlurmDeployer.deploy(config)
   }

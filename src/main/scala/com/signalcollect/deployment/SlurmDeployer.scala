@@ -36,6 +36,11 @@ object SlurmDeployer extends App {
     } else {
       1
     }
+    val workersOnCoordinatorNode = if (config.hasPath("deployment.workers-on-coordinator-node")) {
+      config.getBoolean("deployment.workers-on-coordinator-node")
+    } else {
+      true
+    }
     val jobNumberOfNodes = config.getInt("deployment.torque.job.number-of-nodes")
     val jobCoresPerNode = config.getInt("deployment.torque.job.cores-per-node")
     val jobMemory = config.getString("deployment.torque.job.memory")
@@ -45,6 +50,12 @@ object SlurmDeployer extends App {
     val deploymentJvmPath = config.getString("deployment.jvm.binary-path")
     val deploymentJvmParameters = config.getString("deployment.jvm.parameters")
     val jobSubmitter = new SlurmJobSubmitter(username = serverUsername, hostname = serverAddress)
+    val kryoInitializer = if (config.hasPath("deployment.akka.kryo-initializer")) {
+      config.getString("deployment.akka.kryo-initializer")
+    } else {
+      "com.signalcollect.configuration.KryoInit"
+    }
+
     if (config.hasPath("deployment.setup.copy-files")) {
       val copyConfigs = config.getConfigList("deployment.setup.copy-files")
       for (copyConfig <- copyConfigs) {
@@ -79,11 +90,19 @@ object SlurmDeployer extends App {
     val jobIds = (1 to jobRepetitions).map(i => baseId + i)
     val jobs = jobIds.map { id =>
       Job(
-        execute = SlurmNodeBootstrap(deploymentAlgorithm, parameterMap, jobNumberOfNodes, akkaPort, kryoRegistrations).slurmExecutable _,
+        execute = SlurmNodeBootstrap(
+          "",
+          deploymentAlgorithm,
+          parameterMap,
+          jobNumberOfNodes,
+          akkaPort,
+          workersOnCoordinatorNode,
+          kryoRegistrations,
+          kryoInitializer).slurmExecutable _,
         jobId = id,
         numberOfNodes = jobNumberOfNodes)
     }
     println(s"Submitting jobs ${jobs.toList}")
-    torque.executeJobs(jobs.toList)
+    torque.executeJobs(jobs.toList, copyExecutable = true)
   }
 }
