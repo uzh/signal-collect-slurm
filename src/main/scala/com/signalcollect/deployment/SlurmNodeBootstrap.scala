@@ -53,15 +53,17 @@ case class SlurmNodeBootstrap[Id, Signal](
   kryoRegistrations: List[String],
   kryoInitializer: String) {
 
-  def akkaConfig(akkaPort: Int, kryoRegistrations: List[String], kryoInitializer: String) = AkkaConfig.get(
+  def akkaConfig(akkaHostname: String, akkaPort: Int, kryoRegistrations: List[String], kryoInitializer: String) = AkkaConfig.get(
     serializeMessages = false,
     loggingLevel = Logging.WarningLevel, //Logging.DebugLevel,
     kryoRegistrations = kryoRegistrations,
     kryoInitializer = kryoInitializer,
+    hostname = akkaHostname,
     port = akkaPort)
 
   def ipAndIdToActorRef(ip: String, id: Int, system: ActorSystem, akkaPort: Int): ActorRef = {
-    val address = s"""akka.tcp://SignalCollect@$ip:$akkaPort/user/${actorNamePrefix}DefaultNodeActor$id"""
+    val translatedIp = normalIpToInfinibandIp(ip)
+    val address = s"""akka.tcp://SignalCollect@$translatedIp:$akkaPort/user/${actorNamePrefix}DefaultNodeActor$id"""
     implicit val timeout = Timeout(30.seconds)
     println(s"Resolving node $id")
     val selection = system.actorSelection(address)
@@ -75,6 +77,21 @@ case class SlurmNodeBootstrap[Id, Signal](
       throw new Error("targetSize of the number with prefix should be greater than or equal to the size of the initial number.")
     val prefix = new StringBuilder("0").*(targetSize - number.size)
     prefix + number
+  }
+
+  def normalIpToInfinibandIp(ip: String): String = {
+    val parsed = InetAddress.getByName(ip)
+    val seg = parsed.getAddress
+    if (seg(0) == 130 && seg(1) == 60 && seg(2) == 75) {
+      println("Switched address to Infiniband address.")
+      s"192.168.32.${seg(3)}"
+    } else if (seg(0) == 192 && seg(1) == 168 && seg(2) == 32) {
+      println("Already using Infiniband!")
+      ip
+    } else {
+      println(s"Got address $ip, no Infiniband translation available.")
+      ip
+    }
   }
 
   /**
@@ -108,7 +125,8 @@ case class SlurmNodeBootstrap[Id, Signal](
     println(s"numberOfNodes = $numberOfNodes, akkaPort = $akkaPort")
     println(s"Starting the actor system and node actor ...")
     val nodeId = System.getenv("SLURM_NODEID").toInt //TODO SLURM_NODEID it says relative id. might need to use SLURM_NODELIST to get same result as PBS_NODENUM
-    val system: ActorSystem = ActorSystem("SignalCollect", akkaConfig(akkaPort, kryoRegistrations, kryoInitializer))
+    val akkaHostname = normalIpToInfinibandIp(InetAddress.getLocalHost.getHostAddress)
+    val system: ActorSystem = ActorSystem("SignalCollect", akkaConfig(akkaHostname, akkaPort, kryoRegistrations, kryoInitializer))
     ActorSystemRegistry.register(system)
     //    val leaderExtractor = "\\d+".r
     //    val nodeNames = System.getenv("SLURM_NODELIST")
