@@ -80,17 +80,23 @@ case class SlurmNodeBootstrap[Id, Signal](
   }
 
   def normalIpToInfinibandIp(ip: String): String = {
-    val parsed = InetAddress.getByName(ip)
-    val seg = parsed.getAddress
-    if (seg(0) == 130 && seg(1) == 60 && seg(2) == 75) {
-      println("Switched address to Infiniband address.")
-      s"192.168.32.${seg(3)}"
-    } else if (seg(0) == 192 && seg(1) == 168 && seg(2) == 32) {
-      println("Already using Infiniband!")
-      ip
-    } else {
-      println(s"Got address $ip, no Infiniband translation available.")
-      ip
+    try {
+      val parsed = ip.split("\\.").map(_.toInt)
+      if (parsed(0) == 130 && parsed(1) == 60 && parsed(2) == 75) {
+        println("Switched address to Infiniband address.")
+        s"192.168.32.${parsed(3)}"
+      } else if (parsed(0) == 192 && parsed(1) == 168 && parsed(2) == 32) {
+        println("Already using Infiniband!")
+        ip
+      } else {
+        println(s"Got address $ip, no Infiniband translation available.")
+        ip
+      }
+    } catch {
+      case t: Throwable =>
+        println(s"Error during Infiniband IP mapping: ${t.getMessage}")
+        t.printStackTrace
+        ip
     }
   }
 
