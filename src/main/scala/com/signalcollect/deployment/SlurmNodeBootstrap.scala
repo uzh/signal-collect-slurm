@@ -48,6 +48,7 @@ case class SlurmNodeBootstrap[Id, Signal](
   slurmDeployableAlgorithmClassName: String,
   parameters: Map[String, String],
   numberOfNodes: Int,
+  fixedNumberOfWorkersPerNode: Option[Int],
   akkaPort: Int,
   workersOnCoordinatorNode: Boolean,
   kryoRegistrations: List[String],
@@ -132,13 +133,16 @@ case class SlurmNodeBootstrap[Id, Signal](
     println(s"Starting the actor system and node actor ...")
     val nodeId = System.getenv("SLURM_NODEID").toInt //TODO SLURM_NODEID it says relative id. might need to use SLURM_NODELIST to get same result as PBS_NODENUM
     val akkaHostname = normalIpToInfinibandIp(InetAddress.getLocalHost.getHostAddress)
+    println(s"akkaHostname: $akkaHostname")
     val system: ActorSystem = ActorSystem("SignalCollect", akkaConfig(akkaHostname, akkaPort, kryoRegistrations, kryoInitializer))
+    println(s"$akkaHostname : actor system has been started.")
     ActorSystemRegistry.register(system)
     //    val leaderExtractor = "\\d+".r
     //    val nodeNames = System.getenv("SLURM_NODELIST")
     //    val leaderId = leaderExtractor.findFirstIn(nodeNames).get.toInt
     //    val nodeId = System.getenv("SLURM_NODEID").toInt
     val isLeader = nodeId == 0
+    println(s"$akkaHostname : isLeader: $isLeader")
     if (!isLeader || workersOnCoordinatorNode) {
       //      val nodeControllerCreator = NodeActorCreator(nodeId, numberOfNodes, None)
       //      val nodeController = system.actorOf(Props[DefaultNodeActor].withCreator(
@@ -158,7 +162,7 @@ case class SlurmNodeBootstrap[Id, Signal](
         }
       }
       val nodeController = system.actorOf(
-        Props(classOf[DefaultNodeActor[Id, Signal]], actorNamePrefix, nodeActorId, numberOfWorkerNodes, None),
+        Props(classOf[DefaultNodeActor[Id, Signal]], actorNamePrefix, nodeActorId, numberOfWorkerNodes, fixedNumberOfWorkersPerNode, None),
         name = "DefaultNodeActor" + nodeActorId.toString)
       println(s"Node ID = $nodeId")
     }
