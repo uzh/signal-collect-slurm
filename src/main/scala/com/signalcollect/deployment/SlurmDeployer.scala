@@ -55,6 +55,12 @@ object SlurmDeployer extends App {
     } else {
       "com.signalcollect.configuration.KryoInit"
     }
+    
+    val fixedNumberOfWorkersPerNode = if (config.hasPath("deployment.torque.job.fixed-number-of-workers-per-node")) {
+      Some(config.getInt("deployment.torque.job.fixed-number-of-workers-per-node"))
+    } else {
+      None
+    } 
 
     if (config.hasPath("deployment.setup.copy-files")) {
       val copyConfigs = config.getConfigList("deployment.setup.copy-files")
@@ -95,6 +101,7 @@ object SlurmDeployer extends App {
           deploymentAlgorithm,
           parameterMap,
           jobNumberOfNodes,
+          fixedNumberOfWorkersPerNode,
           akkaPort,
           workersOnCoordinatorNode,
           kryoRegistrations,
