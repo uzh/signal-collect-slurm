@@ -25,6 +25,7 @@ import java.net.InetAddress
 import scala.concurrent.Await
 import scala.concurrent.duration.DurationInt
 import scala.language.postfixOps
+import scala.concurrent.ExecutionContext.Implicits.global
 
 import com.signalcollect.configuration.ActorSystemRegistry
 import com.signalcollect.configuration.AkkaConfig
@@ -44,6 +45,7 @@ import akka.util.Timeout
  * defined by the class 'slurmDeployableAlgorithmClassName'.
  */
 case class SlurmNodeBootstrap[Id, Signal](
+  startSc: Boolean,
   actorNamePrefix: String,
   slurmDeployableAlgorithmClassName: String,
   parameters: Map[String, String],
@@ -67,10 +69,29 @@ case class SlurmNodeBootstrap[Id, Signal](
     val address = s"""akka.tcp://SignalCollect@$translatedIp:$akkaPort/user/${actorNamePrefix}DefaultNodeActor$id"""
     implicit val timeout = Timeout(30.seconds)
     println(s"Resolving node $id")
-    val selection = system.actorSelection(address)
-    val actorRef = Await.result(selection.resolveOne, 30 seconds)
-    println(s"Done resolving node $id")
-    actorRef
+    var attempts = 0
+    def getSelectionFuture = {
+      attempts += 1
+      system.actorSelection(address).resolveOne
+    }
+    var future = getSelectionFuture
+    var result: Option[ActorRef] = None
+    val maxAttempts = 20
+    while (result.isEmpty && attempts < maxAttempts) {
+      try {
+        result = Some(Await.result(getSelectionFuture, 30 seconds))
+      } catch {
+        case t: Throwable =>
+          println(s"Failed during actor resolving: ${t.getMessage}, attempts so far: $attempts")
+          Thread.sleep(2000)
+      }
+    }
+    result match {
+      case None => throw new Exception(s"Leader could not resolve address $address after $attempts attempts.")
+      case Some(r) =>
+        println(s"Leader successfully resolved address $address after $attempts attempts.")
+        r
+    }
   }
 
   def putZeroPrefix(number: String, targetSize: Int): String = {
@@ -129,70 +150,86 @@ case class SlurmNodeBootstrap[Id, Signal](
   }
 
   def slurmExecutable {
-    println(s"numberOfNodes = $numberOfNodes, akkaPort = $akkaPort")
-    println(s"Starting the actor system and node actor ...")
     val nodeId = System.getenv("SLURM_NODEID").toInt //TODO SLURM_NODEID it says relative id. might need to use SLURM_NODELIST to get same result as PBS_NODENUM
-    val akkaHostname = normalIpToInfinibandIp(InetAddress.getLocalHost.getHostAddress)
-    println(s"akkaHostname: $akkaHostname")
-    val system: ActorSystem = ActorSystem("SignalCollect", akkaConfig(akkaHostname, akkaPort, kryoRegistrations, kryoInitializer))
-    println(s"$akkaHostname : actor system has been started.")
-    ActorSystemRegistry.register(system)
-    //    val leaderExtractor = "\\d+".r
-    //    val nodeNames = System.getenv("SLURM_NODELIST")
-    //    val leaderId = leaderExtractor.findFirstIn(nodeNames).get.toInt
-    //    val nodeId = System.getenv("SLURM_NODEID").toInt
     val isLeader = nodeId == 0
-    println(s"$akkaHostname : isLeader: $isLeader")
-    if (!isLeader || workersOnCoordinatorNode) {
-      //      val nodeControllerCreator = NodeActorCreator(nodeId, numberOfNodes, None)
-      //      val nodeController = system.actorOf(Props[DefaultNodeActor].withCreator(
-      //        nodeControllerCreator.create), name = "DefaultNodeActor" + nodeId.toString)
-      val nodeActorId = {
-        if (workersOnCoordinatorNode) {
-          nodeId
-        } else {
-          nodeId - 1
-        }
-      }
-      val numberOfWorkerNodes = {
-        if (workersOnCoordinatorNode) {
-          numberOfNodes
-        } else {
-          numberOfNodes - 1
-        }
-      }
-      val nodeController = system.actorOf(
-        Props(classOf[DefaultNodeActor[Id, Signal]], actorNamePrefix, nodeActorId, numberOfWorkerNodes, fixedNumberOfWorkersPerNode, None),
-        name = "DefaultNodeActor" + nodeActorId.toString)
-      println(s"Node ID = $nodeId")
-    }
-    if (isLeader) {
-      println(s"Node $nodeId is leader.")
-      val nodeNames = System.getenv("SLURM_NODELIST")
-      val nodeNameList = buildNodeNameList(nodeNames)
-      println(s"Leader nodeNameList: $nodeNameList")
-      println("Leader is waiting for node actors to start ...")
-      Thread.sleep(10000)
-      println("Leader is generating the node actor references ...")
-      println(s"workersOnCoordinatorNode = $workersOnCoordinatorNode")
-      println(s"Nodes = ${nodeNameList.map(InetAddress.getByName(_).getHostAddress).toList}")
-      println(s"Coordinator = ${InetAddress.getLocalHost.getHostAddress}")
-      val nodeIps = nodeNameList.map(InetAddress.getByName(_).getHostAddress)
-      val nodeActors = nodeIps.zipWithIndex.par.flatMap {
-        case (ip, i) =>
+    if (startSc) {
+      println(s"numberOfNodes = $numberOfNodes, akkaPort = $akkaPort")
+      println(s"Starting the actor system and node actor ...")
+      val akkaHostname = normalIpToInfinibandIp(InetAddress.getLocalHost.getHostAddress)
+      println(s"akkaHostname: $akkaHostname")
+      val system: ActorSystem = ActorSystem("SignalCollect", akkaConfig(akkaHostname, akkaPort, kryoRegistrations, kryoInitializer))
+      println(s"$akkaHostname : actor system has been started.")
+      ActorSystemRegistry.register(system)
+      //    val leaderExtractor = "\\d+".r
+      //    val nodeNames = System.getenv("SLURM_NODELIST")
+      //    val leaderId = leaderExtractor.findFirstIn(nodeNames).get.toInt
+      //    val nodeId = System.getenv("SLURM_NODEID").toInt
+      println(s"$akkaHostname : isLeader: $isLeader")
+      if (!isLeader || workersOnCoordinatorNode) {
+        //      val nodeControllerCreator = NodeActorCreator(nodeId, numberOfNodes, None)
+        //      val nodeController = system.actorOf(Props[DefaultNodeActor].withCreator(
+        //        nodeControllerCreator.create), name = "DefaultNodeActor" + nodeId.toString)
+        val nodeActorId = {
           if (workersOnCoordinatorNode) {
-            Some(ipAndIdToActorRef(ip, i, system, akkaPort))
-          } else if (ip != InetAddress.getLocalHost.getHostAddress) {
-            Some(ipAndIdToActorRef(ip, i - 1, system, akkaPort))
+            nodeId
           } else {
-            None
+            nodeId - 1
           }
-      }.toArray
-      println("Leader is passing the nodes and graph builder on to the user code ...")
-      val algorithmObject = Class.forName(slurmDeployableAlgorithmClassName).newInstance.asInstanceOf[TorqueDeployableAlgorithm]
-      algorithmObject.execute(parameters, nodeActors)
+        }
+        val numberOfWorkerNodes = {
+          if (workersOnCoordinatorNode) {
+            numberOfNodes
+          } else {
+            numberOfNodes - 1
+          }
+        }
+        val nodeController = system.actorOf(
+          Props(classOf[DefaultNodeActor[Id, Signal]], actorNamePrefix, nodeActorId, numberOfWorkerNodes, fixedNumberOfWorkersPerNode, None),
+          name = "DefaultNodeActor" + nodeActorId.toString)
+        println(s"Node ID = $nodeId")
+      }
+      if (isLeader) {
+        println(s"Node $nodeId is leader.")
+        /**
+         * To avoid some weird Akka error:
+         * akka.remote.RemoteTransportException: Startup timed out
+         * at akka.remote.Remoting.akka$remote$Remoting$$notifyError(Remoting.scala:136)
+         * at akka.remote.Remoting.start(Remoting.scala:198)
+         * at akka.remote.RemoteActorRefProvider.init(RemoteActorRefProvider.scala:184)
+         * at akka.actor.ActorSystemImpl.liftedTree2$1(ActorSystem.scala:618)
+         * ...
+         */
+        Thread.sleep(10000)
+        val nodeNames = System.getenv("SLURM_NODELIST")
+        val nodeNameList = buildNodeNameList(nodeNames)
+        println(s"Leader nodeNameList: $nodeNameList")
+        println("Leader is waiting for node actors to start ...")
+        println("Leader is generating the node actor references ...")
+        println(s"workersOnCoordinatorNode = $workersOnCoordinatorNode")
+        println(s"Nodes = ${nodeNameList.map(InetAddress.getByName(_).getHostAddress).toList}")
+        println(s"Coordinator = ${InetAddress.getLocalHost.getHostAddress}")
+        val nodeIps = nodeNameList.map(InetAddress.getByName(_).getHostAddress)
+        val nodeActors = nodeIps.zipWithIndex.par.flatMap {
+          case (ip, i) =>
+            if (workersOnCoordinatorNode) {
+              Some(ipAndIdToActorRef(ip, i, system, akkaPort))
+            } else if (ip != InetAddress.getLocalHost.getHostAddress) {
+              Some(ipAndIdToActorRef(ip, i - 1, system, akkaPort))
+            } else {
+              None
+            }
+        }.toArray
+        println("Leader is passing the nodes and graph builder on to the user code ...")
+        val algorithmObject = Class.forName(slurmDeployableAlgorithmClassName).newInstance.asInstanceOf[TorqueDeployableAlgorithm]
+        algorithmObject.execute(parameters, nodeActors)
+      } else {
+        println(s"$nodeId has started its actor system.")
+      }
     } else {
-      println(s"$nodeId has started its actor system.")
+      if (isLeader) {
+        val algorithmObject = Class.forName(slurmDeployableAlgorithmClassName).newInstance.asInstanceOf[TorqueDeployableAlgorithm]
+        algorithmObject.execute(parameters, Array())
+      }
     }
   }
 }

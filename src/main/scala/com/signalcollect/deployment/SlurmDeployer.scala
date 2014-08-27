@@ -36,6 +36,11 @@ object SlurmDeployer extends App {
     } else {
       1
     }
+    val startSc = if (config.hasPath("deployment.torque.job.start-sc")) {
+      config.getBoolean("deployment.torque.job.start-sc")
+    } else {
+      true
+    }
     val workersOnCoordinatorNode = if (config.hasPath("deployment.workers-on-coordinator-node")) {
       config.getBoolean("deployment.workers-on-coordinator-node")
     } else {
@@ -55,12 +60,12 @@ object SlurmDeployer extends App {
     } else {
       "com.signalcollect.configuration.KryoInit"
     }
-    
+
     val fixedNumberOfWorkersPerNode = if (config.hasPath("deployment.torque.job.fixed-number-of-workers-per-node")) {
       Some(config.getInt("deployment.torque.job.fixed-number-of-workers-per-node"))
     } else {
       None
-    } 
+    }
 
     if (config.hasPath("deployment.setup.copy-files")) {
       val copyConfigs = config.getConfigList("deployment.setup.copy-files")
@@ -97,6 +102,7 @@ object SlurmDeployer extends App {
     val jobs = jobIds.map { id =>
       Job(
         execute = SlurmNodeBootstrap(
+          startSc,
           "",
           deploymentAlgorithm,
           parameterMap,
