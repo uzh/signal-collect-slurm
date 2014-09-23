@@ -46,6 +46,7 @@ import akka.util.Timeout
  */
 case class SlurmNodeBootstrap[Id, Signal](
   startSc: Boolean,
+  infiniband: Boolean,
   actorNamePrefix: String,
   slurmDeployableAlgorithmClassName: String,
   parameters: Map[String, String],
@@ -102,23 +103,28 @@ case class SlurmNodeBootstrap[Id, Signal](
   }
 
   def normalIpToInfinibandIp(ip: String): String = {
-    try {
-      val parsed = ip.split("\\.").map(_.toInt)
-      if (parsed(0) == 130 && parsed(1) == 60 && parsed(2) == 75) {
-        println("Switched address to Infiniband address.")
-        s"192.168.32.${parsed(3)}"
-      } else if (parsed(0) == 192 && parsed(1) == 168 && parsed(2) == 32) {
-        println("Already using Infiniband!")
-        ip
-      } else {
-        println(s"Got address $ip, no Infiniband translation available.")
-        ip
+    if (infiniband) {
+      try {
+        val parsed = ip.split("\\.").map(_.toInt)
+        if (parsed(0) == 130 && parsed(1) == 60 && parsed(2) == 75) {
+          println("Switched address to Infiniband address.")
+          s"192.168.32.${parsed(3)}"
+        } else if (parsed(0) == 192 && parsed(1) == 168 && parsed(2) == 32) {
+          println("Already using Infiniband!")
+          ip
+        } else {
+          println(s"Got address $ip, no Infiniband translation available.")
+          ip
+        }
+      } catch {
+        case t: Throwable =>
+          println(s"Error during Infiniband IP mapping: ${t.getMessage}")
+          t.printStackTrace
+          ip
       }
-    } catch {
-      case t: Throwable =>
-        println(s"Error during Infiniband IP mapping: ${t.getMessage}")
-        t.printStackTrace
-        ip
+    } else {
+      println("Infiniband disabled.")
+      ip
     }
   }
 

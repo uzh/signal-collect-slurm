@@ -41,6 +41,11 @@ object SlurmDeployer extends App {
     } else {
       true
     }
+    val infiniband = if (config.hasPath("deployment.torque.job.infiniband")) {
+      config.getBoolean("deployment.torque.job.infiniband")
+    } else {
+      true
+    }
     val workersOnCoordinatorNode = if (config.hasPath("deployment.workers-on-coordinator-node")) {
       config.getBoolean("deployment.workers-on-coordinator-node")
     } else {
@@ -103,6 +108,7 @@ object SlurmDeployer extends App {
       Job(
         execute = SlurmNodeBootstrap(
           startSc,
+          infiniband,
           "",
           deploymentAlgorithm,
           parameterMap,
