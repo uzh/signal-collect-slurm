@@ -28,10 +28,11 @@ import scala.concurrent.duration.Duration
 import scala.concurrent.future
 import scala.language.postfixOps
 import scala.sys.process.stringToProcess
+import com.signalcollect.nodeprovisioning.torque.ExecutionHost
+import com.signalcollect.nodeprovisioning.torque.Job
 import com.signalcollect.serialization.DefaultSerializer
 import scala.util.Random
 import scala.concurrent.Future
-import com.signalcollect.nodeprovisioning._
 
 case class SlurmHost(
   jobSubmitter: SlurmJobSubmitter,
@@ -47,7 +48,7 @@ case class SlurmHost(
   val fileSeparator = System.getProperty("file.separator")
   val jarName = localJarPath.substring(localJarPath.lastIndexOf(fileSeparator) + 1, localJarPath.size)
 
-  override def executeJobs(jobs: List[Job]) = executeJobs(jobs, true)
+  def executeJobs(jobs: List[Job]) = executeJobs(jobs, true)
 
   def executeJobs(jobs: List[Job], copyExecutable: Boolean = true) = {
     if (!jobs.isEmpty) {
