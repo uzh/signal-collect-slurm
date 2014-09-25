@@ -21,10 +21,9 @@ package com.signalcollect.deployment
 
 import com.signalcollect.util.RandomString
 import com.typesafe.config.Config
-import com.signalcollect.nodeprovisioning.torque.TorqueHost
-import com.signalcollect.nodeprovisioning.torque.Job
 import scala.collection.JavaConversions._
 import com.signalcollect.nodeprovisioning.slurm._
+import com.signalcollect.nodeprovisioning._
 
 object SlurmDeployer extends App {
 

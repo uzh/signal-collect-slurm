@@ -25,7 +25,7 @@ import scala.language.postfixOps
 import scala.sys.process.stringToProcess
 import ch.ethz.ssh2.Connection
 import ch.ethz.ssh2.StreamGobbler
-import com.signalcollect.nodeprovisioning.torque.IoUtil
+import com.signalcollect.nodeprovisioning.IoUtil
 
 case class SlurmJobSubmitter(
   username: String,

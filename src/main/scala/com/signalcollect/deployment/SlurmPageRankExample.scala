@@ -24,7 +24,7 @@ import com.signalcollect.examples.PageRankVertex
 import com.signalcollect.examples.PageRankEdge
 import akka.actor.ActorRef
 
-class SlurmPageRankExample extends TorqueDeployableAlgorithm {
+class SlurmPageRankExample extends DeployableAlgorithm {
   def execute(parameters: Map[String, String], nodeActors: Array[ActorRef]) {
     println(s"Received parameters $parameters")
     val graph = GraphBuilder.withPreallocatedNodes(nodeActors).build
