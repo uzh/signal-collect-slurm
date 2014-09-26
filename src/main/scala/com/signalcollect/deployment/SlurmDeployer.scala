@@ -28,20 +28,20 @@ import com.signalcollect.nodeprovisioning._
 object SlurmDeployer extends App {
 
   def deploy(config: Config) {
-    val serverAddress = config.getString("deployment.torque.server.address")
-    val serverUsername = config.getString("deployment.torque.server.username")
-    val jobRepetitions = if (config.hasPath("deployment.torque.job.repetitions")) {
-      config.getInt("deployment.torque.job.repetitions")
+    val serverAddress = config.getString("deployment.server.address")
+    val serverUsername = config.getString("deployment.server.username")
+    val jobRepetitions = if (config.hasPath("deployment.job.repetitions")) {
+      config.getInt("deployment.job.repetitions")
     } else {
       1
     }
-    val startSc = if (config.hasPath("deployment.torque.job.start-sc")) {
-      config.getBoolean("deployment.torque.job.start-sc")
+    val startSc = if (config.hasPath("deployment.job.start-sc")) {
+      config.getBoolean("deployment.job.start-sc")
     } else {
       true
     }
-    val infiniband = if (config.hasPath("deployment.torque.job.infiniband")) {
-      config.getBoolean("deployment.torque.job.infiniband")
+    val infiniband = if (config.hasPath("deployment.job.infiniband")) {
+      config.getBoolean("deployment.job.infiniband")
     } else {
       true
     }
@@ -50,11 +50,10 @@ object SlurmDeployer extends App {
     } else {
       true
     }
-    val jobNumberOfNodes = config.getInt("deployment.torque.job.number-of-nodes")
-    val jobCoresPerNode = config.getInt("deployment.torque.job.cores-per-node")
-    val jobMemory = config.getString("deployment.torque.job.memory")
-    val jobWalltime = config.getString("deployment.torque.job.walltime")
-    val jobWorkingDir = config.getString("deployment.torque.job.working-dir")
+    val jobNumberOfNodes = config.getInt("deployment.job.number-of-nodes")
+    val jobCoresPerNode = config.getInt("deployment.job.cores-per-node")
+    val jobMemory = config.getString("deployment.job.memory")
+    val jobWalltime = config.getString("deployment.job.walltime")
     val deploymentJar = config.getString("deployment.jvm.deployed-jar")
     val deploymentJvmPath = config.getString("deployment.jvm.binary-path")
     val deploymentJvmParameters = config.getString("deployment.jvm.parameters")
@@ -65,8 +64,8 @@ object SlurmDeployer extends App {
       "com.signalcollect.configuration.KryoInit"
     }
 
-    val fixedNumberOfWorkersPerNode = if (config.hasPath("deployment.torque.job.fixed-number-of-workers-per-node")) {
-      Some(config.getInt("deployment.torque.job.fixed-number-of-workers-per-node"))
+    val fixedNumberOfWorkersPerNode = if (config.hasPath("deployment.job.fixed-number-of-workers-per-node")) {
+      Some(config.getInt("deployment.job.fixed-number-of-workers-per-node"))
     } else {
       None
     }
@@ -93,14 +92,13 @@ object SlurmDeployer extends App {
     val priorityString = s"""#SBATCH -t $jobWalltime
     						#SBATCH --mem=$jobMemory"""
     val akkaPort = 2552
-    val torque = new SlurmHost(
+    val slurm = new SlurmHost(
       jobSubmitter = jobSubmitter,
       coresPerNode = jobCoresPerNode,
       localJarPath = deploymentJar,
       jdkBinPath = deploymentJvmPath,
       jvmParameters = deploymentJvmParameters,
-      priority = priorityString,
-      workingDir = jobWorkingDir)
+      priority = priorityString)
     val baseId = s"sc-${RandomString.generate(6)}-"
     val jobIds = (1 to jobRepetitions).map(i => baseId + i)
     val jobs = jobIds.map { id =>
@@ -121,6 +119,6 @@ object SlurmDeployer extends App {
         numberOfNodes = jobNumberOfNodes)
     }
     println(s"Submitting jobs ${jobs.toList}")
-    torque.executeJobs(jobs.toList, copyExecutable = true)
+    slurm.executeJobs(jobs.toList, copyExecutable = true)
   }
 }

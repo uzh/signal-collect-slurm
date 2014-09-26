@@ -17,14 +17,15 @@
  *
  */
 
-package com.signalcollect.deployment
+package com.signalcollect.deployment.examples
 
 import com.signalcollect.GraphBuilder
 import com.signalcollect.examples.PageRankVertex
 import com.signalcollect.examples.PageRankEdge
 import akka.actor.ActorRef
+import com.signalcollect.deployment.DeployableAlgorithm
 
-class SlurmPageRankExample extends DeployableAlgorithm {
+class PageRankExample extends DeployableAlgorithm {
   def execute(parameters: Map[String, String], nodeActors: Array[ActorRef]) {
     println(s"Received parameters $parameters")
     val graph = GraphBuilder.withPreallocatedNodes(nodeActors).build

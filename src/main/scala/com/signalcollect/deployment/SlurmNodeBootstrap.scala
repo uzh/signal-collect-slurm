@@ -226,14 +226,14 @@ case class SlurmNodeBootstrap[Id, Signal](
             }
         }.toArray
         println("Leader is passing the nodes and graph builder on to the user code ...")
-        val algorithmObject = Class.forName(slurmDeployableAlgorithmClassName).newInstance.asInstanceOf[TorqueDeployableAlgorithm]
+        val algorithmObject = Class.forName(slurmDeployableAlgorithmClassName).newInstance.asInstanceOf[DeployableAlgorithm]
         algorithmObject.execute(parameters, nodeActors)
       } else {
         println(s"$nodeId has started its actor system.")
       }
     } else {
       if (isLeader) {
-        val algorithmObject = Class.forName(slurmDeployableAlgorithmClassName).newInstance.asInstanceOf[TorqueDeployableAlgorithm]
+        val algorithmObject = Class.forName(slurmDeployableAlgorithmClassName).newInstance.asInstanceOf[DeployableAlgorithm]
         algorithmObject.execute(parameters, Array())
       }
     }

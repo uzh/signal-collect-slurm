@@ -40,7 +40,7 @@ case class SlurmHost(
   jarDescription: String = (Random.nextInt.abs % 1000).toString,
   jvmParameters: String = "-Xmx63000m -Xms63000m",
   jdkBinPath: String = "",
-  mainClass: String = "com.signalcollect.nodeprovisioning.torque.JobExecutor",
+  mainClass: String = "com.signalcollect.nodeprovisioning.JobExecutor",
   priority: String = SlurmPriority.superfast,
   workingDir: String = "/home/slurm/${USER}-${SLURM_JOB_ID}") extends ExecutionHost {
 
@@ -51,7 +51,7 @@ case class SlurmHost(
 
   def executeJobs(jobs: List[Job], copyExecutable: Boolean = true) = {
     if (!jobs.isEmpty) {
-      /** COPY EVAL JAR TO TORQUE HOME DIRECTORY */
+      /** COPY EVAL JAR TO SLURM HOME DIRECTORY */
       if (copyExecutable) {
         jobSubmitter.copyFileToCluster(localJarPath)
       }
