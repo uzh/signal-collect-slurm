@@ -165,7 +165,7 @@ case class SlurmNodeBootstrap[Id, Signal](
     val nodeNames = System.getenv("SLURM_NODELIST")
     val nodeNameList = SlurmNodeBootstrap.buildNodeNameList(nodeNames)
     val currentNodeName = nodeNameList(nodeRelativeId)
-      println("Node: "+ currentNodeName+" with rel Id " + nodeRelativeId + " isLeader = " + isLeader)
+    println("Node: " + currentNodeName + " with rel Id " + nodeRelativeId + " isLeader = " + isLeader)
     if (startSc) {
       println(s"numberOfNodes = $numberOfNodes, akkaPort = $akkaPort")
       println(s"Starting the actor system and node actor ...")
@@ -175,16 +175,15 @@ case class SlurmNodeBootstrap[Id, Signal](
       println(s"$akkaHostname : actor system has been started.")
       ActorSystemRegistry.register(system)
       println(s"$akkaHostname : isLeader: $isLeader")
-      if (!isLeader) {
-        println("Node" +currentNodeName+" with relId: "+ nodeRelativeId + " is not leader or workers on coordinator node")
-        val nodeActorId = nodeRelativeId
-        val numberOfWorkerNodes = numberOfNodes
-        val nodeController = system.actorOf(
-          Props(classOf[DefaultNodeActor[Id, Signal]], actorNamePrefix, nodeActorId, numberOfWorkerNodes, fixedNumberOfWorkersPerNode, None),
-          name = "DefaultNodeActor" + nodeActorId.toString)
-        println(s"Node ID = $nodeRelativeId")
-        println(s"$nodeRelativeId has started its actor system.")
-      } else {
+      println("Node" + currentNodeName + " with relId: " + nodeRelativeId + " is not leader or workers on coordinator node")
+      val nodeActorId = nodeRelativeId
+      val numberOfWorkerNodes = numberOfNodes
+      val nodeController = system.actorOf(
+        Props(classOf[DefaultNodeActor[Id, Signal]], actorNamePrefix, nodeActorId, numberOfWorkerNodes, fixedNumberOfWorkersPerNode, None),
+        name = "DefaultNodeActor" + nodeActorId.toString)
+      println(s"Node ID = $nodeRelativeId")
+      println(s"$nodeRelativeId has started its actor system.")
+      if (isLeader) {
         println(s"Node $nodeRelativeId is leader.")
         /**
          * To avoid some weird Akka error:
