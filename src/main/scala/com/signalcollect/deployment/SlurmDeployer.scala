@@ -45,11 +45,9 @@ object SlurmDeployer extends App {
     } else {
       true
     }
-    val workersOnCoordinatorNode = if (config.hasPath("deployment.workers-on-coordinator-node")) {
-      config.getBoolean("deployment.workers-on-coordinator-node")
-    } else {
-      true
-    }
+    if (config.hasPath("deployment.workers-on-coordinator-node")) {
+      throw new UnsupportedOperationException("Coordinator on a separate node is not supported for SLURM deployment")
+      }
     val jobNumberOfNodes = config.getInt("deployment.job.number-of-nodes")
     val jobCoresPerNode = config.getInt("deployment.job.cores-per-node")
     val jobMemory = config.getString("deployment.job.memory")
@@ -112,7 +110,6 @@ object SlurmDeployer extends App {
           jobNumberOfNodes,
           fixedNumberOfWorkersPerNode,
           akkaPort,
-          workersOnCoordinatorNode,
           kryoRegistrations,
           kryoInitializer).slurmExecutable _,
         jobId = id,
