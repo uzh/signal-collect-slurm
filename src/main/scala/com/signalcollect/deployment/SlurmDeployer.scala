@@ -19,11 +19,14 @@
 
 package com.signalcollect.deployment
 
+import scala.collection.JavaConversions.asScalaBuffer
+import scala.collection.JavaConversions.asScalaSet
+
+import com.signalcollect.nodeprovisioning.Job
+import com.signalcollect.nodeprovisioning.slurm.SlurmHost
+import com.signalcollect.nodeprovisioning.slurm.SlurmJobSubmitter
 import com.signalcollect.util.RandomString
 import com.typesafe.config.Config
-import scala.collection.JavaConversions._
-import com.signalcollect.nodeprovisioning.slurm._
-import com.signalcollect.nodeprovisioning._
 
 object SlurmDeployer extends App {
 

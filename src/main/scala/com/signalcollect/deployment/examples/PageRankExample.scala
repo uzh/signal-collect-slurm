@@ -20,10 +20,11 @@
 package com.signalcollect.deployment.examples
 
 import com.signalcollect.GraphBuilder
-import com.signalcollect.examples.PageRankVertex
-import com.signalcollect.examples.PageRankEdge
-import akka.actor.ActorRef
 import com.signalcollect.deployment.DeployableAlgorithm
+import com.signalcollect.examples.PageRankEdge
+import com.signalcollect.examples.PageRankVertex
+
+import akka.actor.ActorRef
 
 class PageRankExample extends DeployableAlgorithm {
   def execute(parameters: Map[String, String], nodeActors: Array[ActorRef]) {
