@@ -1,7 +1,7 @@
 package com.signalcollect.nodeprovisioning.slurm
 
 /**
- * Determines the priority in torque's scheduling queue
+ * Determines the priority in Slurm's scheduling queue
  */
 object SlurmPriority {
   val superfast = """#SBATCH -t 0-00:59:59"""+

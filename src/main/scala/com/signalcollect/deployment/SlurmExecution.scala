@@ -19,12 +19,13 @@
 
 package com.signalcollect.deployment
 
-import com.typesafe.config.ConfigFactory
 import java.io.File
+
 import com.typesafe.config.Config
+import com.typesafe.config.ConfigFactory
 
 /**
- * Deploys a job to torque using a configuration.
+ * Deploys a job to Slurm using a configuration.
  * First priority have all configuration parameters from the config file that is optionally passed
  * as an argument.
  * Second priority have configuration parameters defined in the optional default configration file
@@ -35,7 +36,7 @@ object SlurmExecution extends App {
   deployToSlurm(args)
 
   def deployToSlurm(arguments: Array[String]) {
-    val defaultConfigPath = "./deployment.slurm.config"
+    val defaultConfigPath = "./deployment.config"
     val defaultConfig = readConfig(defaultConfigPath)
     val mainConfig = if (arguments.size > 0) {
       readConfig(arguments(0))

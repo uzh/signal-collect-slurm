@@ -24,5 +24,7 @@ parallelExecution in Test := false
 libraryDependencies ++= Seq(
   "org.scala-lang" % "scala-library" % "2.11.2"  % "compile",
   "ch.ethz.ganymed" % "ganymed-ssh2" % "build210"  % "compile",
-  "commons-codec" % "commons-codec" % "1.7"  % "compile"
+  "commons-codec" % "commons-codec" % "1.7"  % "compile",
+  "org.scalacheck" %% "scalacheck" % "1.11.3" % "test",
+  "org.scalatest" %% "scalatest" % "2.1.3" % "test"
   )

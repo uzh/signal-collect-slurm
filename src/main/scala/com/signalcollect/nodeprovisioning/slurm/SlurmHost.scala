@@ -28,11 +28,10 @@ import scala.concurrent.duration.Duration
 import scala.concurrent.future
 import scala.language.postfixOps
 import scala.sys.process.stringToProcess
-import com.signalcollect.nodeprovisioning.torque.ExecutionHost
-import com.signalcollect.nodeprovisioning.torque.Job
 import com.signalcollect.serialization.DefaultSerializer
 import scala.util.Random
 import scala.concurrent.Future
+import com.signalcollect.nodeprovisioning._
 
 case class SlurmHost(
   jobSubmitter: SlurmJobSubmitter,
@@ -41,18 +40,18 @@ case class SlurmHost(
   jarDescription: String = (Random.nextInt.abs % 1000).toString,
   jvmParameters: String = "-Xmx63000m -Xms63000m",
   jdkBinPath: String = "",
-  mainClass: String = "com.signalcollect.nodeprovisioning.torque.JobExecutor",
+  mainClass: String = "com.signalcollect.nodeprovisioning.JobExecutor",
   priority: String = SlurmPriority.superfast,
   workingDir: String = "/home/slurm/${USER}-${SLURM_JOB_ID}") extends ExecutionHost {
 
   val fileSeparator = System.getProperty("file.separator")
   val jarName = localJarPath.substring(localJarPath.lastIndexOf(fileSeparator) + 1, localJarPath.size)
 
-  def executeJobs(jobs: List[Job]) = executeJobs(jobs, true)
+  override def executeJobs(jobs: List[Job]) = executeJobs(jobs, true)
 
   def executeJobs(jobs: List[Job], copyExecutable: Boolean = true) = {
     if (!jobs.isEmpty) {
-      /** COPY EVAL JAR TO TORQUE HOME DIRECTORY */
+      /** COPY EVAL JAR TO SLURM HOME DIRECTORY */
       if (copyExecutable) {
         jobSubmitter.copyFileToCluster(localJarPath)
       }
