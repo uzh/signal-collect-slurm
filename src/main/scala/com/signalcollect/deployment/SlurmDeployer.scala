@@ -50,11 +50,18 @@ object SlurmDeployer extends App {
     }
     if (config.hasPath("deployment.workers-on-coordinator-node")) {
       throw new UnsupportedOperationException("Coordinator on a separate node is not supported for SLURM deployment")
-      }
+    }
     val jobNumberOfNodes = config.getInt("deployment.job.number-of-nodes")
     val jobCoresPerNode = config.getInt("deployment.job.cores-per-node")
     val jobMemory = config.getString("deployment.job.memory")
     val jobWalltime = config.getString("deployment.job.walltime")
+    val copyJar = {
+      if (config.hasPath("deployment.job.copy-jar")) {
+        config.getBoolean("deployment.job.copy-jar")
+      } else {
+        true
+      }
+    }
     val deploymentJar = config.getString("deployment.jvm.deployed-jar")
     val deploymentJvmPath = config.getString("deployment.jvm.binary-path")
     val deploymentJvmParameters = config.getString("deployment.jvm.parameters")
@@ -119,6 +126,6 @@ object SlurmDeployer extends App {
         numberOfNodes = jobNumberOfNodes)
     }
     println(s"Submitting jobs ${jobs.toList}")
-    slurm.executeJobs(jobs.toList, copyExecutable = true)
+    slurm.executeJobs(jobs.toList, copyExecutable = copyJar)
   }
 }
