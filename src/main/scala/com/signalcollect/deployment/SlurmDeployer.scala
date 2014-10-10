@@ -38,6 +38,11 @@ object SlurmDeployer extends App {
     } else {
       1
     }
+    val partition = if (config.hasPath("deployment.job.partition")) {
+      Some(config.getString("deployment.job.partition"))
+    } else {
+      None
+    }
     val startSc = if (config.hasPath("deployment.job.start-sc")) {
       config.getBoolean("deployment.job.start-sc")
     } else {
@@ -53,8 +58,6 @@ object SlurmDeployer extends App {
     }
     val jobNumberOfNodes = config.getInt("deployment.job.number-of-nodes")
     val jobCoresPerNode = config.getInt("deployment.job.cores-per-node")
-    val jobMemory = config.getString("deployment.job.memory")
-    val jobWalltime = config.getString("deployment.job.walltime")
     val copyJar = {
       if (config.hasPath("deployment.job.copy-jar")) {
         config.getBoolean("deployment.job.copy-jar")
@@ -97,8 +100,11 @@ object SlurmDeployer extends App {
     val parameterMap = config.getConfig("deployment.algorithm.parameters").entrySet.map {
       entry => (entry.getKey, entry.getValue.unwrapped.toString)
     }.toMap
-    val priorityString = s"""#SBATCH -t $jobWalltime
-    						#SBATCH --mem=$jobMemory"""
+    val partitionString = if (partition.isDefined) {
+      s"""#SBATCH --partition=${partition.get}"""
+    } else {
+      ""
+    }
     val akkaPort = 2552
     val slurm = new SlurmHost(
       jobSubmitter = jobSubmitter,
@@ -106,7 +112,7 @@ object SlurmDeployer extends App {
       localJarPath = deploymentJar,
       jdkBinPath = deploymentJvmPath,
       jvmParameters = deploymentJvmParameters,
-      priority = priorityString)
+      priority = partitionString)
     val baseId = s"sc-${RandomString.generate(6)}-"
     val jobIds = (1 to jobRepetitions).map(i => baseId + i)
     val jobs = jobIds.map { id =>
