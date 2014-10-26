@@ -53,6 +53,11 @@ object SlurmDeployer extends App {
     } else {
       true
     }
+    val idleDetectionPropagationDelayInMilliseconds = if (config.hasPath("deployment.job.idle-detection-propagation-delay")) {
+      config.getInt("deployment.job.idle-detection-propagation-delay")
+    } else {
+      1
+    }
     if (config.hasPath("deployment.workers-on-coordinator-node")) {
       throw new UnsupportedOperationException("Coordinator on a separate node is not supported for SLURM deployment")
     }
@@ -125,6 +130,7 @@ object SlurmDeployer extends App {
           parameterMap,
           jobNumberOfNodes,
           fixedNumberOfWorkersPerNode,
+          idleDetectionPropagationDelayInMilliseconds,
           akkaPort,
           kryoRegistrations,
           kryoInitializer).slurmExecutable _,

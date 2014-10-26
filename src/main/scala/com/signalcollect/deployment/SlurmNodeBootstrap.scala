@@ -91,6 +91,7 @@ case class SlurmNodeBootstrap[Id, Signal](
   parameters: Map[String, String],
   numberOfNodes: Int,
   fixedNumberOfWorkersPerNode: Option[Int],
+  idleDetectionPropagationDelayInMilliseconds: Int,
   akkaPort: Int,
   kryoRegistrations: List[String],
   kryoInitializer: String) {
@@ -184,7 +185,7 @@ case class SlurmNodeBootstrap[Id, Signal](
           nodeActorId,
           numberOfWorkerNodes,
           fixedNumberOfWorkersPerNode,
-          1,
+          idleDetectionPropagationDelayInMilliseconds,
           None),
         name = "DefaultNodeActor" + nodeActorId.toString)
       println(s"Node ID = $nodeRelativeId")
