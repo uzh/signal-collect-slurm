@@ -179,7 +179,13 @@ case class SlurmNodeBootstrap[Id, Signal](
       val nodeActorId = nodeRelativeId
       val numberOfWorkerNodes = numberOfNodes
       val nodeController = system.actorOf(
-        Props(classOf[DefaultNodeActor[Id, Signal]], actorNamePrefix, nodeActorId, numberOfWorkerNodes, fixedNumberOfWorkersPerNode, None),
+        Props(classOf[DefaultNodeActor[Id, Signal]],
+          actorNamePrefix,
+          nodeActorId,
+          numberOfWorkerNodes,
+          fixedNumberOfWorkersPerNode,
+          1,
+          None),
         name = "DefaultNodeActor" + nodeActorId.toString)
       println(s"Node ID = $nodeRelativeId")
       println(s"$nodeRelativeId has started its actor system.")
