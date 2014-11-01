@@ -22,7 +22,7 @@ import org.scalatest.FlatSpec
 import org.scalatest.ShouldMatchers
 import com.signalcollect.TestAnnouncements
 
-class NodeNameExtractionSpec extends FlatSpec with ShouldMatchers with TestAnnouncements {
+class NodeNameExtractionSpec extends FlatSpec with ShouldMatchers{
 
   "NodeNameExtractor" should "correctly build the names in a simple example" in {
     val nodeNames = "minion[01,02-03,08-10,13]"
