@@ -20,7 +20,6 @@ package com.signalcollect.deployment
 
 import org.scalatest.FlatSpec
 import org.scalatest.ShouldMatchers
-import com.signalcollect.TestAnnouncements
 
 class NodeNameExtractionSpec extends FlatSpec with ShouldMatchers{
 
