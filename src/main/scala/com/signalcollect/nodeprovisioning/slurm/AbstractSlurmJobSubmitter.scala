@@ -34,11 +34,12 @@ abstract class AbstractSlurmJobSubmitter extends Serializable {
     jarname: String,
     mainClass: String,
     priority: String = SlurmPriority.superfast,
+    partition: String,
     jvmParameters: String,
     jdkBinPath: String,
     workingDir: String,
     mailAddress: Option[String] = None): String = {
-    val script = getShellScript(jobId, numberOfNodes, coresPerNode, jarname, mainClass, priority, jvmParameters, jdkBinPath, workingDir, mailAddress)
+    val script = getShellScript(jobId, numberOfNodes, coresPerNode, jarname, mainClass, priority, partition, jvmParameters, jdkBinPath, workingDir, mailAddress)
     //println("The batchscript")
     //println(script)
     val qsubCommand = """sbatch """ + jobId + ".sh" //TODO // | base64 -d
@@ -56,6 +57,7 @@ abstract class AbstractSlurmJobSubmitter extends Serializable {
     jarname: String,
     mainClass: String,
     priority: String,
+    partition: String,
     jvmParameters: String,
     jdkBinPath: String,
     workingDir: String,
@@ -82,7 +84,7 @@ abstract class AbstractSlurmJobSubmitter extends Serializable {
 srun --ntasks-per-node=1 cp ~/$jarname $workingDir/
 
 # run test
-srun --ntasks-per-node=1 """ + jdkBinPath + s"""java $jvmParameters -cp $workingDir/$jarname $mainClass """ + jobId
+srun --ntasks-per-node=1 --partition=${partition} """ + jdkBinPath + s"""java $jvmParameters -cp $workingDir/$jarname $mainClass """ + jobId
 
     val fileSeparator = System.getProperty("file.separator")
 

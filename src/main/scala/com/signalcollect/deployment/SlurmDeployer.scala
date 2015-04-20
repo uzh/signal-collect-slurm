@@ -117,7 +117,8 @@ object SlurmDeployer extends App {
       localJarPath = deploymentJar,
       jdkBinPath = deploymentJvmPath,
       jvmParameters = deploymentJvmParameters,
-      priority = partitionString)
+      priority = partitionString, 
+      partition = partition.get)
     val baseId = s"sc-${RandomString.generate(6)}-"
     val jobIds = (1 to jobRepetitions).map(i => baseId + i)
     val jobs = jobIds.map { id =>
