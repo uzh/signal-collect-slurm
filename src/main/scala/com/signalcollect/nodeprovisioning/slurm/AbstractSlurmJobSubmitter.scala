@@ -73,6 +73,7 @@ abstract class AbstractSlurmJobSubmitter extends Serializable {
 
 #SBATCH --exclusive
 """ + priority + """
+#SBATCH --partition=""" + partition + """
 #SBATCH -o
 #SBATCH --mail-type=ALL
 #SBATCH --export=ALL
@@ -84,7 +85,7 @@ abstract class AbstractSlurmJobSubmitter extends Serializable {
 srun --ntasks-per-node=1 cp ~/$jarname $workingDir/
 
 # run test
-srun --ntasks-per-node=1 --partition=${partition} """ + jdkBinPath + s"""java $jvmParameters -cp $workingDir/$jarname $mainClass """ + jobId
+srun --partition=${partition} --ntasks-per-node=1 """ + jdkBinPath + s"""java $jvmParameters -cp $workingDir/$jarname $mainClass """ + jobId
 
     val fileSeparator = System.getProperty("file.separator")
 
