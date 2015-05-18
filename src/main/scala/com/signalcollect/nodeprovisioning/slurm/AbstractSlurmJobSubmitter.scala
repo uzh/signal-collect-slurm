@@ -35,11 +35,12 @@ abstract class AbstractSlurmJobSubmitter extends Serializable {
     mainClass: String,
     priority: String = SlurmPriority.superfast,
     partition: String,
+    excludeNodes: String = "",
     jvmParameters: String,
     jdkBinPath: String,
     workingDir: String,
     mailAddress: Option[String] = None): String = {
-    val script = getShellScript(jobId, numberOfNodes, coresPerNode, jarname, mainClass, priority, partition, jvmParameters, jdkBinPath, workingDir, mailAddress)
+    val script = getShellScript(jobId, numberOfNodes, coresPerNode, jarname, mainClass, priority, partition, excludeNodes, jvmParameters, jdkBinPath, workingDir, mailAddress)
     //println("The batchscript")
     //println(script)
     val qsubCommand = """sbatch """ + jobId + ".sh" //TODO // | base64 -d
@@ -58,6 +59,7 @@ abstract class AbstractSlurmJobSubmitter extends Serializable {
     mainClass: String,
     priority: String,
     partition: String,
+    excludeNodes: String,
     jvmParameters: String,
     jdkBinPath: String,
     workingDir: String,
@@ -74,6 +76,7 @@ abstract class AbstractSlurmJobSubmitter extends Serializable {
 #SBATCH --exclusive
 """ + priority + """
 #SBATCH --partition=""" + partition + """
+#SBATCH --exclude=""" + excludeNodes + """
 #SBATCH -o
 #SBATCH --mail-type=ALL
 #SBATCH --export=ALL
@@ -85,7 +88,7 @@ abstract class AbstractSlurmJobSubmitter extends Serializable {
 srun --ntasks-per-node=1 cp ~/$jarname $workingDir/
 
 # run test
-srun --partition=${partition} --ntasks-per-node=1 """ + jdkBinPath + s"""java $jvmParameters -cp $workingDir/$jarname $mainClass """ + jobId
+srun --partition=${partition} --exclude=${excludeNodes}--ntasks-per-node=1 """ + jdkBinPath + s"""java $jvmParameters -cp $workingDir/$jarname $mainClass """ + jobId
 
     val fileSeparator = System.getProperty("file.separator")
 
@@ -99,9 +102,12 @@ srun --partition=${partition} --ntasks-per-node=1 """ + jdkBinPath + s"""java $j
     out.close
     copyFileToCluster(scriptPath)
 
-    println("Jarname is: " + jarname)
-    println("Script in abstract is")
-    println(script)
+    //Only add if submission doesn't need to run fast
+//    println("Jarname is: " + jarname)
+//    println("Script in abstract is")
+//    println(script)
+    
+    
     ////TODO: maybe add 
     //#create scratch, if it does not exist
     //srun --ntasks-per-node=1 mkdir $workingDir/

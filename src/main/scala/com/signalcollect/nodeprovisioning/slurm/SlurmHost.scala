@@ -43,6 +43,7 @@ case class SlurmHost(
   mainClass: String = "com.signalcollect.nodeprovisioning.JobExecutor",
   priority: String = SlurmPriority.superfast,
   partition: String,
+  excludeNodes: String = "",
   workingDir: String = "/home/slurm/${USER}-${SLURM_JOB_ID}") extends ExecutionHost {
 
   val fileSeparator = System.getProperty("file.separator")
@@ -74,7 +75,7 @@ case class SlurmHost(
             jobSubmitter.copyFileToCluster(configPath)
             val deleteConfig = "rm " + configPath
             deleteConfig !!
-            val result = jobSubmitter.runOnClusterNodes(job.jobId.toString, job.numberOfNodes, coresPerNode, jarName, mainClass, priority, partition, jvmParameters, jdkBinPath, workingDir)
+            val result = jobSubmitter.runOnClusterNodes(job.jobId.toString, job.numberOfNodes, coresPerNode, jarName, mainClass, priority, partition, excludeNodes, jvmParameters, jdkBinPath, workingDir)
             println("Job " + job.jobId + " has been submitted.")
             result
           }
