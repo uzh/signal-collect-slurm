@@ -44,14 +44,13 @@ case class SlurmHost(
   priority: String = SlurmPriority.superfast,
   partition: String,
   excludeNodes: String = "",
+  copyExecutable: Boolean = true,
   workingDir: String = "/home/slurm/${USER}-${SLURM_JOB_ID}") extends ExecutionHost {
 
   val fileSeparator = System.getProperty("file.separator")
   val jarName = localJarPath.substring(localJarPath.lastIndexOf(fileSeparator) + 1, localJarPath.size)
 
-  override def executeJobs(jobs: List[Job]) = executeJobs(jobs, true)
-
-  def executeJobs(jobs: List[Job], copyExecutable: Boolean = true) = {
+  override def executeJobs(jobs: List[Job]) = {
     if (!jobs.isEmpty) {
       /** COPY EVAL JAR TO SLURM HOME DIRECTORY */
       if (copyExecutable) {

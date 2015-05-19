@@ -125,7 +125,8 @@ object SlurmDeployer extends App {
       jvmParameters = deploymentJvmParameters,
       priority = partitionString,
       partition = partition.get,
-      excludeNodes = excludeNodes.get)
+      excludeNodes = excludeNodes.get,
+      copyExecutable = copyJar)
     val baseId = s"sc-${RandomString.generate(6)}-"
     val jobIds = (1 to jobRepetitions).map(i => baseId + i)
     val jobs = jobIds.map { id =>
@@ -146,6 +147,6 @@ object SlurmDeployer extends App {
         numberOfNodes = jobNumberOfNodes)
     }
     println(s"Submitting jobs ${jobs.toList}")
-    slurm.executeJobs(jobs.toList, copyExecutable = copyJar)
+    slurm.executeJobs(jobs.toList)
   }
 }
