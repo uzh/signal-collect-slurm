@@ -88,7 +88,7 @@ abstract class AbstractSlurmJobSubmitter extends Serializable {
 srun --ntasks-per-node=1 cp ~/$jarname $workingDir/
 
 # run test
-srun --partition=${partition} --exclude=${excludeNodes}--ntasks-per-node=1 """ + jdkBinPath + s"""java $jvmParameters -cp $workingDir/$jarname $mainClass """ + jobId
+srun --partition=${partition} --exclude=${excludeNodes} --ntasks-per-node=1 """ + jdkBinPath + s"""java $jvmParameters -cp $workingDir/$jarname $mainClass """ + jobId
 
     val fileSeparator = System.getProperty("file.separator")
 
