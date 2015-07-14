@@ -43,11 +43,6 @@ object SlurmDeployer extends App {
     } else {
       None
     }
-    val excludeNodes = if (config.hasPath("deployment.job.exclude-nodes")) {
-      Some(config.getString("deployment.job.exclude-nodes"))
-    } else {
-      None
-    }
     val startSc = if (config.hasPath("deployment.job.start-sc")) {
       config.getBoolean("deployment.job.start-sc")
     } else {
@@ -115,7 +110,6 @@ object SlurmDeployer extends App {
     } else {
       ""
     }
-
     val akkaPort = 2552
     val slurm = new SlurmHost(
       jobSubmitter = jobSubmitter,
@@ -123,10 +117,7 @@ object SlurmDeployer extends App {
       localJarPath = deploymentJar,
       jdkBinPath = deploymentJvmPath,
       jvmParameters = deploymentJvmParameters,
-      priority = partitionString,
-      partition = partition.get,
-      excludeNodes = excludeNodes.get,
-      copyExecutable = copyJar)
+      priority = partitionString)
     val baseId = s"sc-${RandomString.generate(6)}-"
     val jobIds = (1 to jobRepetitions).map(i => baseId + i)
     val jobs = jobIds.map { id =>
@@ -147,6 +138,6 @@ object SlurmDeployer extends App {
         numberOfNodes = jobNumberOfNodes)
     }
     println(s"Submitting jobs ${jobs.toList}")
-    slurm.executeJobs(jobs.toList)
+    slurm.executeJobs(jobs.toList, copyExecutable = copyJar)
   }
 }
