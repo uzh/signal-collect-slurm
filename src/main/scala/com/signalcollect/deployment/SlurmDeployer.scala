@@ -48,10 +48,10 @@ object SlurmDeployer extends App {
     } else {
       true
     }
-    val infiniband = if (config.hasPath("deployment.job.infiniband")) {
-      config.getBoolean("deployment.job.infiniband")
+    val networkRootIp = if (config.hasPath("deployment.job.network-root-address")) {
+      Some(config.getString("deployment.job.network-root-address"))
     } else {
-      true
+      None
     }
     val idleDetectionPropagationDelayInMilliseconds = if (config.hasPath("deployment.job.idle-detection-propagation-delay")) {
       config.getInt("deployment.job.idle-detection-propagation-delay")
@@ -124,7 +124,7 @@ object SlurmDeployer extends App {
       Job(
         execute = SlurmNodeBootstrap(
           startSc,
-          infiniband,
+          networkRootIp,
           "",
           deploymentAlgorithm,
           parameterMap,

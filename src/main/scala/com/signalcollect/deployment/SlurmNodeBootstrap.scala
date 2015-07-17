@@ -85,7 +85,8 @@ object SlurmNodeBootstrap {
  */
 case class SlurmNodeBootstrap[Id, Signal](
   startSc: Boolean,
-  infiniband: Boolean,
+  //infiniband: Boolean,
+  networkRootIp: Option[String],
   actorNamePrefix: String,
   slurmDeployableAlgorithmClassName: String,
   parameters: Map[String, String],
@@ -105,7 +106,7 @@ case class SlurmNodeBootstrap[Id, Signal](
     port = akkaPort)
 
   def ipAndIdToActorRef(ip: String, id: Int, system: ActorSystem, akkaPort: Int): ActorRef = {
-    val translatedIp = normalIpToInfinibandIp(ip)
+    val translatedIp = normalIpToInfinibandIp(ip, networkRootIp)
     val address = s"""akka.tcp://SignalCollect@$translatedIp:$akkaPort/user/${actorNamePrefix}DefaultNodeActor$id"""
     implicit val timeout = Timeout(30.seconds)
     println(s"Resolving node $id")
@@ -134,30 +135,33 @@ case class SlurmNodeBootstrap[Id, Signal](
     }
   }
 
-  def normalIpToInfinibandIp(ip: String): String = {
-    if (infiniband) {
-      try {
-        val parsed = ip.split("\\.").map(_.toInt)
-        if (parsed(0) == 130 && parsed(1) == 60 && parsed(2) == 75) {
-          println("Switched address to Infiniband address.")
-          s"192.168.32.${parsed(3)}"
-        } else if (parsed(0) == 192 && parsed(1) == 168 && parsed(2) == 32) {
-          println("Already using Infiniband!")
-          ip
-        } else {
-          println(s"Got address $ip, no Infiniband translation available.")
+  def normalIpToInfinibandIp(ip: String, networkRootIp: Option[String]): String = {
+    try {
+      networkRootIp match {
+        case None => {
+          println(s"No new ip specified. Using current ip $ip")
           ip
         }
-      } catch {
-        case t: Throwable =>
-          println(s"Error during Infiniband IP mapping: ${t.getMessage}")
-          t.printStackTrace
-          ip
+        case Some(netIp) => {
+          val parsedIp = ip.split("\\.").map(_.toInt)
+          val parsedNetworkRootIp = netIp.split("\\.").map(_.toInt)
+          if (parsedIp(0) == parsedNetworkRootIp(0) && parsedIp(1) == parsedNetworkRootIp(1) && parsedIp(2) == parsedNetworkRootIp(2)) {
+            println(s"Already using the given network ip: $ip")
+            ip
+          } else {
+            val newIp = s"${parsedNetworkRootIp(0)}.${parsedNetworkRootIp(1)}.${parsedNetworkRootIp(2)}.${parsedIp(3)}"
+            println(s"Switched address $ip to network ip address: $newIp")
+            newIp
+          }
+        }
       }
-    } else {
-      println("Infiniband disabled.")
-      ip
+    } catch {
+      case t: Throwable =>
+        println(s"Error during Infiniband IP mapping: ${t.getMessage}")
+        t.printStackTrace
+        ip
     }
+
   }
 
   def slurmExecutable {
@@ -170,7 +174,7 @@ case class SlurmNodeBootstrap[Id, Signal](
     if (startSc) {
       println(s"numberOfNodes = $numberOfNodes, akkaPort = $akkaPort")
       println(s"Starting the actor system and node actor ...")
-      val akkaHostname = normalIpToInfinibandIp(InetAddress.getLocalHost.getHostAddress)
+      val akkaHostname = normalIpToInfinibandIp(InetAddress.getLocalHost.getHostAddress, networkRootIp)
       println(s"akkaHostname: $akkaHostname")
       val system: ActorSystem = ActorSystem("SignalCollect", akkaConfig(akkaHostname, akkaPort, kryoRegistrations, kryoInitializer))
       println(s"$akkaHostname : actor system has been started.")
