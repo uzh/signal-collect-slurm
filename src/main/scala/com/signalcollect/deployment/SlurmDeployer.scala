@@ -43,20 +43,15 @@ object SlurmDeployer extends App {
     } else {
       None
     }
-    val excludeNodes = if (config.hasPath("deployment.job.exclude-nodes")) {
-      Some(config.getString("deployment.job.exclude-nodes"))
-    } else {
-      None
-    }
     val startSc = if (config.hasPath("deployment.job.start-sc")) {
       config.getBoolean("deployment.job.start-sc")
     } else {
       true
     }
-    val infiniband = if (config.hasPath("deployment.job.infiniband")) {
-      config.getBoolean("deployment.job.infiniband")
+    val networkRootIp = if (config.hasPath("deployment.job.network-root-address")) {
+      Some(config.getString("deployment.job.network-root-address"))
     } else {
-      true
+      None
     }
     val idleDetectionPropagationDelayInMilliseconds = if (config.hasPath("deployment.job.idle-detection-propagation-delay")) {
       config.getInt("deployment.job.idle-detection-propagation-delay")
@@ -115,7 +110,6 @@ object SlurmDeployer extends App {
     } else {
       ""
     }
-
     val akkaPort = 2552
     val slurm = new SlurmHost(
       jobSubmitter = jobSubmitter,
@@ -123,17 +117,14 @@ object SlurmDeployer extends App {
       localJarPath = deploymentJar,
       jdkBinPath = deploymentJvmPath,
       jvmParameters = deploymentJvmParameters,
-      priority = partitionString,
-      partition = partition.get,
-      excludeNodes = excludeNodes.get,
-      copyExecutable = copyJar)
+      priority = partitionString)
     val baseId = s"sc-${RandomString.generate(6)}-"
     val jobIds = (1 to jobRepetitions).map(i => baseId + i)
     val jobs = jobIds.map { id =>
       Job(
         execute = SlurmNodeBootstrap(
           startSc,
-          infiniband,
+          networkRootIp,
           "",
           deploymentAlgorithm,
           parameterMap,
@@ -147,6 +138,6 @@ object SlurmDeployer extends App {
         numberOfNodes = jobNumberOfNodes)
     }
     println(s"Submitting jobs ${jobs.toList}")
-    slurm.executeJobs(jobs.toList)
+    slurm.executeJobs(jobs.toList, copyExecutable = copyJar)
   }
 }

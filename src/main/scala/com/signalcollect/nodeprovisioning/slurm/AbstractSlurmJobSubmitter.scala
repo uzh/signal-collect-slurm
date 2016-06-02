@@ -34,13 +34,11 @@ abstract class AbstractSlurmJobSubmitter extends Serializable {
     jarname: String,
     mainClass: String,
     priority: String = SlurmPriority.superfast,
-    partition: String,
-    excludeNodes: String = "",
     jvmParameters: String,
     jdkBinPath: String,
     workingDir: String,
     mailAddress: Option[String] = None): String = {
-    val script = getShellScript(jobId, numberOfNodes, coresPerNode, jarname, mainClass, priority, partition, excludeNodes, jvmParameters, jdkBinPath, workingDir, mailAddress)
+    val script = getShellScript(jobId, numberOfNodes, coresPerNode, jarname, mainClass, priority, jvmParameters, jdkBinPath, workingDir, mailAddress)
     //println("The batchscript")
     //println(script)
     val qsubCommand = """sbatch """ + jobId + ".sh" //TODO // | base64 -d
@@ -58,8 +56,6 @@ abstract class AbstractSlurmJobSubmitter extends Serializable {
     jarname: String,
     mainClass: String,
     priority: String,
-    partition: String,
-    excludeNodes: String,
     jvmParameters: String,
     jdkBinPath: String,
     workingDir: String,
@@ -75,8 +71,6 @@ abstract class AbstractSlurmJobSubmitter extends Serializable {
 
 #SBATCH --exclusive
 """ + priority + """
-#SBATCH --partition=""" + partition + """
-#SBATCH --exclude=""" + excludeNodes + """
 #SBATCH -o
 #SBATCH --mail-type=ALL
 #SBATCH --export=ALL
@@ -104,13 +98,10 @@ srun --partition=${partition}  """ +
     out.close
     copyFileToCluster(scriptPath)
 
-    //Only add if submission doesn't need to run fast
-//    println("Jarname is: " + jarname)
-//    println("Script in abstract is")
-//    println(script)
-    
-    
-    ////TODO: maybe add 
+    println("Jarname is: " + jarname)
+    println("Script in abstract is")
+    println(script)
+    ////TODO: maybe add
     //#create scratch, if it does not exist
     //srun --ntasks-per-node=1 mkdir $workingDir/
     //
