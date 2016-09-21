@@ -1,8 +1,9 @@
 /*
  *  @author Philip Stutz
  *  @author Daniel Strebel
+ *  @author Mihaela Verman
  *
- *  Copyright 2012 University of Zurich
+ *  Copyright 2012-2016 University of Zurich
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -34,15 +35,18 @@ abstract class AbstractSlurmJobSubmitter extends Serializable {
     jarname: String,
     mainClass: String,
     priority: String = SlurmPriority.superfast,
+    partition: String,
+    excludeNodes: String = "",
     jvmParameters: String,
     jdkBinPath: String,
     workingDir: String,
     mailAddress: Option[String] = None): String = {
-    val script = getShellScript(jobId, numberOfNodes, coresPerNode, jarname, mainClass, priority, jvmParameters, jdkBinPath, workingDir, mailAddress)
+    val script = getShellScript(jobId, numberOfNodes, coresPerNode, jarname, mainClass, priority, partition, excludeNodes, 
+        jvmParameters, jdkBinPath, workingDir, mailAddress)
     //println("The batchscript")
     //println(script)
-    val qsubCommand = """sbatch """ + jobId + ".sh" //TODO // | base64 -d
-    executeCommandOnClusterManager(qsubCommand)
+    val sBatchCommand = """sbatch """ + jobId + ".sh" //TODO // | base64 -d
+    executeCommandOnClusterManager(sBatchCommand)
   }
 
   def executeCommandOnClusterManager(command: String): String
@@ -56,22 +60,25 @@ abstract class AbstractSlurmJobSubmitter extends Serializable {
     jarname: String,
     mainClass: String,
     priority: String,
+    partition: String,
+    excludeNodes: String = "",
     jvmParameters: String,
     jdkBinPath: String,
     workingDir: String,
     mailAddress: Option[String]): String = {
 
-    println("Copying submission script")
+    //println("Copying submission script")
 
     val script = """#!/bin/bash
 #SBATCH --job-name=""" + jobId + """
 #SBATCH -N """ + numberOfNodes + """
 #SBATCH -n """ + numberOfNodes + """
-#SBATCH -c """ + coresPerNode + """
+#SBATCH --cpus-per-task """ + coresPerNode + """
 
 #SBATCH --exclusive
 """ + priority + """
-#SBATCH -o
+#SBATCH --partition=""" + partition + """
+#SBATCH --exclude=""" + excludeNodes + """
 #SBATCH --mail-type=ALL
 #SBATCH --export=ALL
 #SBATCH -o out/""" + jobId + """.out
@@ -79,12 +86,14 @@ abstract class AbstractSlurmJobSubmitter extends Serializable {
 """ + { if (mailAddress.isDefined) "#SBATCH --mail-user=" + mailAddress.get else "" } + s"""
 
 # copy jar
-srun --ntasks-per-node=1 cp ~/$jarname $workingDir/
+cp ~/$jarname $workingDir/
 
-# run test
-srun --partition=${partition}  """ +
-      { if (excludeNodes != "") s"--exclude=" + excludeNodes else "" } +
-      s""" --ntasks-per-node=1 """ + jdkBinPath + s"""java $jvmParameters -cp $workingDir/$jarname $mainClass """ + jobId
+# run test 
+""" +
+//srun --partition=${partition}  """ +
+//      { if (excludeNodes != "") s"--exclude=" + excludeNodes else "" } +
+//      s""" --ntasks-per-node=1 """ 
+    jdkBinPath + s"""java $jvmParameters -cp $workingDir/$jarname $mainClass """ + jobId
 
     val fileSeparator = System.getProperty("file.separator")
 
@@ -99,8 +108,8 @@ srun --partition=${partition}  """ +
     copyFileToCluster(scriptPath)
 
     println("Jarname is: " + jarname)
-    println("Script in abstract is")
-    println(script)
+    //println("Script in abstract is")
+    //println(script)
     ////TODO: maybe add
     //#create scratch, if it does not exist
     //srun --ntasks-per-node=1 mkdir $workingDir/

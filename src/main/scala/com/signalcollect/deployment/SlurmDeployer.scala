@@ -43,6 +43,11 @@ object SlurmDeployer extends App {
     } else {
       None
     }
+    val excludeNodes = if (config.hasPath("deployment.job.exclude-nodes")) {
+      Some(config.getString("deployment.job.exclude-nodes"))
+    } else {
+      None
+    }
     val startSc = if (config.hasPath("deployment.job.start-sc")) {
       config.getBoolean("deployment.job.start-sc")
     } else {
@@ -117,7 +122,10 @@ object SlurmDeployer extends App {
       localJarPath = deploymentJar,
       jdkBinPath = deploymentJvmPath,
       jvmParameters = deploymentJvmParameters,
-      priority = partitionString)
+      priority = partitionString,
+      partition = partition.get,
+      excludeNodes = excludeNodes.get,
+      copyExecutable = copyJar)
     val baseId = s"sc-${RandomString.generate(6)}-"
     val jobIds = (1 to jobRepetitions).map(i => baseId + i)
     val jobs = jobIds.map { id =>

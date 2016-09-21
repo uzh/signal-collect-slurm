@@ -34,7 +34,7 @@ import scala.concurrent.Future
 import com.signalcollect.nodeprovisioning._
 
 case class SlurmHost(
-  jobSubmitter: SlurmJobSubmitter,
+  jobSubmitter: AbstractSlurmJobSubmitter,
   coresPerNode: Int,
   localJarPath: String,
   jarDescription: String = (Random.nextInt.abs % 1000).toString,
@@ -42,6 +42,9 @@ case class SlurmHost(
   jdkBinPath: String = "",
   mainClass: String = "com.signalcollect.nodeprovisioning.JobExecutor",
   priority: String = SlurmPriority.superfast,
+  partition: String,
+  excludeNodes: String = "",
+  copyExecutable: Boolean = true,
   workingDir: String = "/home/slurm/${USER}-${SLURM_JOB_ID}") extends ExecutionHost {
 
   val fileSeparator = System.getProperty("file.separator")
@@ -60,7 +63,7 @@ case class SlurmHost(
       val jubSubmissions = jobs map {
         job =>
           Future {
-            println("Submitting job " + job.jobId + " ...")
+            //println("Submitting job " + job.jobId + " ...")
             val config = DefaultSerializer.write(job)
             val folder = new File("." + fileSeparator + "config-tmp")
             if (!folder.exists) {
@@ -73,7 +76,7 @@ case class SlurmHost(
             jobSubmitter.copyFileToCluster(configPath)
             val deleteConfig = "rm " + configPath
             deleteConfig !!
-            val result = jobSubmitter.runOnClusterNodes(job.jobId.toString, job.numberOfNodes, coresPerNode, jarName, mainClass, priority, jvmParameters, jdkBinPath, workingDir)
+            val result = jobSubmitter.runOnClusterNodes(job.jobId.toString, job.numberOfNodes, coresPerNode, jarName, mainClass, priority, partition, excludeNodes, jvmParameters, jdkBinPath, workingDir)
             println("Job " + job.jobId + " has been submitted.")
             result
           }

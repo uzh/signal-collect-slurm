@@ -25,32 +25,36 @@ import language.postfixOps
 
 class LocalSlurmJobSubmitter extends AbstractSlurmJobSubmitter {
 
-  override def runOnClusterNodes(
-    jobId: String,
-    numberOfNodes: Int,
-    coresPerNode: Int,
-    jarname: String,
-    mainClass: String,
-    priority: String = SlurmPriority.superfast,
-    jvmParameters: String,
-    jdkBinPath: String = "",
-    workingDir: String = "/home/slurm/${USER}-${SLURM_JOB_ID}",
-    mailAddress: Option[String] = None): String = {
-    val script = getShellScript(
-      jobId,
-      numberOfNodes,
-      coresPerNode,
-      jarname,
-      mainClass,
-      priority,
-      jvmParameters,
-      jdkBinPath,
-      workingDir,
-      mailAddress)
-    val qsubCommand = """sbatch """+script //TODO
-    println("Slurm submission: "+ qsubCommand)
-    Seq("echo", script) #| Seq("sbatch")!!
-  }
+//  override def runOnClusterNodes(
+//    jobId: String,
+//    numberOfNodes: Int,
+//    coresPerNode: Int,
+//    jarname: String,
+//    mainClass: String,
+//    priority: String = SlurmPriority.superfast,
+//    partition: String,
+//    excludeNodes: String,
+//    jvmParameters: String,
+//    jdkBinPath: String = "",
+//    workingDir: String = "/home/slurm/${USER}-${SLURM_JOB_ID}",
+//    mailAddress: Option[String] = None): String = {
+//    val script = getShellScript(
+//      jobId,
+//      numberOfNodes,
+//      coresPerNode,
+//      jarname,
+//      mainClass,
+//      priority,
+//      partition: String,
+//      excludeNodes: String,
+//      jvmParameters,
+//      jdkBinPath,
+//      workingDir,
+//      mailAddress)
+//    val qsubCommand = """sbatch """ + script //TODO
+//    println("Slurm submission: " + qsubCommand)
+//    Seq("echo", script) #| Seq(qsubCommand)!!
+//  }
 
   def executeCommandOnClusterManager(command: String): String = {
     println(command)
